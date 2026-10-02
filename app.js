@@ -34,6 +34,11 @@
 
   function show(screen){
     const active = screens.find(s => s.classList.contains("active"));
+    const menu = el("appMenu");
+    if(menu){
+      menu.removeAttribute("open");
+      menu.hidden = screen === settings;
+    }
     if(screen === settings && active && active !== settings) previousScreen = active;
     screens.forEach(s => s.classList.remove("active"));
     screen.classList.add("active");
@@ -490,12 +495,32 @@
   async function loadHeroRail(){
     const rail = el("heroPosterRail");
     if(!rail || !tmdbFetchEnabled) return;
-    const picks = questions.slice(0,4);
-    const results = await Promise.allSettled(picks.map(getMedia));
-    const posters = results
-      .filter(result => result.status === "fulfilled" && result.value?.poster)
-      .map(result => result.value);
+
+    const candidates = [];
+    const seenMedia = new Set();
+
+    [...questions, ...builtInQuestions, ...questionPool].forEach(question => {
+      const key = mediaKey(question);
+      if(!key || seenMedia.has(key)) return;
+      seenMedia.add(key);
+      candidates.push(question);
+    });
+
+    const posters = [];
+    const seenPosters = new Set();
+
+    for(const question of candidates.slice(0,18)){
+      try {
+        const media = await getMedia(question);
+        if(!media?.poster || seenPosters.has(media.poster)) continue;
+        posters.push(media);
+        seenPosters.add(media.poster);
+        if(posters.length === 4) break;
+      } catch (_) {}
+    }
+
     if(!posters.length) return;
+
     rail.replaceChildren();
     posters.forEach(media => {
       const img = document.createElement("img");
@@ -503,6 +528,7 @@
       img.alt = "";
       rail.appendChild(img);
     });
+    rail.dataset.posterCount = String(posters.length);
     rail.classList.add("populated");
   }
 
