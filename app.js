@@ -67,7 +67,7 @@
       img.src = image;
       img.alt = (media.title || q.movie) + " artwork from TMDB";
     } catch (error) {
-      if(/not configured|HTTP 503|TMDb is not configured/i.test(error.message)) tmdbFetchEnabled = false;
+      if(!/could not find that movie/i.test(error.message)) tmdbFetchEnabled = false;
       setArtworkFallback(q.movie, "Artwork unavailable");
     }
   }
@@ -196,8 +196,11 @@
   }
 
   async function prepareGoogleButton(){
-    el("loginHelp").textContent = "Loading Google sign-in…";
+    el("loginHelp").textContent = "Checking account service…";
+    el("googleButton").replaceChildren();
     try {
+      await api("/api/health");
+      el("loginHelp").textContent = "Loading Google sign-in…";
       await ensureGoogle();
       google.accounts.id.initialize({
         client_id: config.googleClientId,
