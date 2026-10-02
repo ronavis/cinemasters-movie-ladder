@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f3e8">
   <meta name="description" content="Cinemasters Movie Ladder — climb the movie trivia ladder.">
   <title>Cinemasters Movie Ladder</title>
-  <link rel="stylesheet" href="styles.css?v=20261002-tmdb-live-1">
+  <link rel="stylesheet" href="styles.css?v=20261002-jazz-1">
 </head>
 <body>
   <main class="app-shell">
@@ -24,6 +24,7 @@
     <section id="welcome" class="screen active">
       <div class="hero-card">
         <div class="hero-art">
+          <div id="heroPosterRail" class="hero-poster-rail" aria-hidden="true"></div>
           <div class="hero-overlay"></div>
           <div class="hero-copy">
             <div class="eyebrow">Cinemasters of the Universe</div>
@@ -55,6 +56,7 @@
         <div class="score-block">
           <div id="ticketsLabel" class="tickets">🎟️ 🎟️ 🎟️</div>
           <div id="scoreLabel" class="score">0 pts</div>
+          <div id="streakLabel" class="streak-label" hidden>🔥 2 streak</div>
         </div>
       </header>
 
@@ -64,16 +66,18 @@
           <span id="difficultyLabel">Warm-up</span>
         </div>
         <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+        <div id="ladderDots" class="ladder-dots" aria-label="Movie Ladder progress"></div>
       </div>
 
       <article class="question-card">
         <div class="artwork-wrap">
-          <img id="movieArtwork" alt="" hidden>
+          <img id="movieArtwork" class="movie-backdrop" alt="" hidden>
           <div id="artworkFallback" class="artwork-fallback">
             <div class="film-strip"></div>
             <div id="fallbackTitle" class="fallback-title">Movie Ladder</div>
           </div>
           <div class="artwork-shade"></div>
+          <img id="moviePoster" class="movie-poster" alt="" hidden>
           <div id="artworkBadge" class="artwork-badge">Artwork loading…</div>
           <div class="movie-meta">
             <div>
@@ -183,8 +187,8 @@
     </div>
   </dialog>
 
-  <script src="config.js?v=20261002-tmdb-live-1"></script>
-  <script src="data/questions.js?v=20261002-tmdb-live-1"></script>
-  <script src="app.js?v=20261002-tmdb-live-1"></script>
+  <script src="config.js?v=20261002-jazz-1"></script>
+  <script src="data/questions.js?v=20261002-jazz-1"></script>
+  <script src="app.js?v=20261002-jazz-1"></script>
 </body>
 </html>
