@@ -308,6 +308,7 @@ h1{
   left:16px;
   bottom:14px;
   width:72px;
+  height:auto;
   aspect-ratio:2/3;
   object-fit:cover;
   z-index:2;
