@@ -1,5 +1,8 @@
 (() => {
-  const questions = Array.isArray(window.CINEMASTERS_QUESTIONS) ? window.CINEMASTERS_QUESTIONS : [];
+  const builtInQuestions = (Array.isArray(window.CINEMASTERS_QUESTIONS) ? window.CINEMASTERS_QUESTIONS : [])
+    .map((question, i) => ({...question, rung:Number(question.rung) || i + 1}));
+  let questionPool = [...builtInQuestions];
+  let questions = [...builtInQuestions];
   const config = window.MOVIE_LADDER_CONFIG || {};
   const el = id => document.getElementById(id);
   const screens = [el("welcome"), el("game"), el("result"), el("settings")];
@@ -12,7 +15,14 @@
   let previousScreen = welcome;
   let googlePromise = null;
   let tmdbFetchEnabled = true;
-  const state = { token:"", user:null, tmdb:null };
+  const state = {
+    token:"",
+    user:null,
+    tmdb:null,
+    importedQuestionCount:0,
+    triviaCsv:"",
+    triviaValidated:false
+  };
 
   function show(screen){
     const active = screens.find(s => s.classList.contains("active"));
@@ -66,6 +76,45 @@
     try { payload = await response.json(); } catch (_) {}
     if(!response.ok) throw new Error(payload.error || "Movie Ladder account service returned an error.");
     return payload;
+  }
+
+  function buildRunQuestions(){
+    const run = [];
+    for(let rung = 1; rung <= 10; rung++){
+      const candidates = questionPool.filter(question => Number(question.rung) === rung);
+      const fallback = builtInQuestions.find(question => Number(question.rung) === rung);
+      const choices = candidates.length ? candidates : (fallback ? [fallback] : []);
+      if(!choices.length) continue;
+      run.push(choices[Math.floor(Math.random() * choices.length)]);
+    }
+    return run;
+  }
+
+  async function loadQuestionBank(){
+    try {
+      const payload = await api("/movie-ladder/questions");
+      const imported = Array.isArray(payload.questions)
+        ? payload.questions.filter(question => Number(question.rung) >= 1 && Number(question.rung) <= 10)
+        : [];
+      state.importedQuestionCount = imported.length;
+      questionPool = [...builtInQuestions, ...imported];
+      if(welcome.classList.contains("active")){
+        questions = buildRunQuestions();
+      }
+      paintQuestionBankCount();
+    } catch (_) {
+      state.importedQuestionCount = 0;
+      questionPool = [...builtInQuestions];
+      paintQuestionBankCount();
+    }
+  }
+
+  function paintQuestionBankCount(){
+    const badge = el("questionBankCount");
+    if(!badge) return;
+    const count = state.importedQuestionCount;
+    badge.textContent = `${count.toLocaleString()} imported`;
+    el("triviaClearButton").disabled = count === 0;
   }
 
   function mediaKey(q){
@@ -485,20 +534,150 @@
     }
   }
 
+  function resetTriviaPreview(message=""){
+    state.triviaValidated = false;
+    el("triviaImportButton").disabled = true;
+    el("triviaPreview").hidden = true;
+    el("triviaPreviewRows").replaceChildren();
+    el("triviaPreviewSummary").textContent = "CSV preview";
+    el("triviaPreviewNote").textContent = "";
+    el("triviaImportMessage").textContent = message;
+  }
+
+  function questionTypeLabel(question){
+    if(Array.isArray(question.answerMovies)) return "movie";
+    if(question.personDepartment === "Directing") return "director";
+    if(Array.isArray(question.answerPeople)) return "actor";
+    return "text";
+  }
+
+  function paintTriviaPreview(payload){
+    const rows = el("triviaPreviewRows");
+    rows.replaceChildren();
+    (payload.preview || []).forEach(question => {
+      const tr = document.createElement("tr");
+      const values = [
+        question.rung,
+        questionTypeLabel(question),
+        question.question,
+        question.answers?.[question.correct] || ""
+      ];
+      values.forEach(value => {
+        const td = document.createElement("td");
+        td.textContent = String(value ?? "");
+        tr.appendChild(td);
+      });
+      rows.appendChild(tr);
+    });
+    el("triviaPreviewSummary").textContent = `${payload.count.toLocaleString()} valid question${payload.count === 1 ? "" : "s"}`;
+    el("triviaPreviewNote").textContent = payload.truncated ? "Showing first 20" : "All rows shown";
+    el("triviaPreview").hidden = false;
+  }
+
+  async function refreshQuestionBankStatus(){
+    if(!state.user?.admin) return;
+    try {
+      const payload = await api("/movie-ladder/admin/questions");
+      state.importedQuestionCount = Number(payload.count) || 0;
+      paintQuestionBankCount();
+    } catch(error) {
+      el("questionBankCount").textContent = "Unavailable";
+      el("triviaImportMessage").textContent = error.message;
+    }
+  }
+
+  async function validateTriviaCsv(){
+    if(!state.user?.admin || !state.triviaCsv) return;
+    resetTriviaPreview("Validating CSV…");
+    el("triviaValidateButton").disabled = true;
+    try {
+      const payload = await api("/movie-ladder/admin/questions/validate", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({csv:state.triviaCsv})
+      });
+      state.triviaValidated = true;
+      paintTriviaPreview(payload);
+      el("triviaImportButton").disabled = false;
+      el("triviaImportMessage").textContent = "Looks good. Nothing has been saved yet.";
+    } catch(error) {
+      el("triviaImportMessage").textContent = error.message;
+    } finally {
+      el("triviaValidateButton").disabled = !state.triviaCsv;
+    }
+  }
+
+  async function importTriviaCsv(){
+    if(!state.user?.admin || !state.triviaCsv || !state.triviaValidated) return;
+    const mode = el("triviaImportMode").value === "replace" ? "replace" : "append";
+    el("triviaImportButton").disabled = true;
+    el("triviaImportMessage").textContent = mode === "replace"
+      ? "Replacing imported question bank…"
+      : "Importing questions…";
+    try {
+      const payload = await api("/movie-ladder/admin/questions/import", {
+        method:"POST",
+        headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({csv:state.triviaCsv, mode})
+      });
+      state.importedQuestionCount = Number(payload.count) || 0;
+      paintQuestionBankCount();
+      await loadQuestionBank();
+      el("triviaImportMessage").textContent = mode === "replace"
+        ? `Imported ${payload.added.toLocaleString()} question${payload.added === 1 ? "" : "s"}. The imported bank now has ${payload.count.toLocaleString()}.`
+        : `Added ${payload.added.toLocaleString()} question${payload.added === 1 ? "" : "s"}; skipped ${payload.skipped.toLocaleString()} duplicate${payload.skipped === 1 ? "" : "s"}.`;
+      state.triviaCsv = "";
+      state.triviaValidated = false;
+      el("triviaCsvFile").value = "";
+      el("triviaValidateButton").disabled = true;
+      el("triviaImportButton").disabled = true;
+      el("triviaPreview").hidden = true;
+    } catch(error) {
+      el("triviaImportMessage").textContent = error.message;
+      el("triviaImportButton").disabled = false;
+    }
+  }
+
+  async function clearTriviaBank(){
+    if(!state.user?.admin || state.importedQuestionCount === 0) return;
+    if(!confirm("Clear every CSV-imported Movie Ladder question? The built-in questions will remain.")) return;
+    el("triviaClearButton").disabled = true;
+    el("triviaImportMessage").textContent = "Clearing imported questions…";
+    try {
+      await api("/movie-ladder/admin/questions", {method:"DELETE"});
+      state.importedQuestionCount = 0;
+      await loadQuestionBank();
+      paintQuestionBankCount();
+      resetTriviaPreview("Imported question bank cleared. Built-in questions are untouched.");
+    } catch(error) {
+      el("triviaImportMessage").textContent = error.message;
+      paintQuestionBankCount();
+    }
+  }
+
   async function openSettings(){
     if(!state.user?.admin) return;
     show(settings);
     el("tmdbMessage").textContent = "";
-    await refreshTmdbStatus();
+    el("triviaImportMessage").textContent = "";
+    await Promise.all([refreshTmdbStatus(), refreshQuestionBankStatus()]);
   }
 
-  el("startButton").addEventListener("click", () => { index = 0; lives = 3; score = 0; streak = 0; show(game); render(); });
+  el("startButton").addEventListener("click", () => {
+    questions = buildRunQuestions();
+    index = 0; lives = 3; score = 0; streak = 0;
+    show(game); render();
+  });
   el("nextButton").addEventListener("click", () => {
     if(lives === 0){ finish(false); return; }
     if(index === questions.length - 1){ finish(true); return; }
     index++; render();
   });
-  el("replayButton").addEventListener("click", () => { index = 0; lives = 3; score = 0; streak = 0; show(game); render(); });
+  el("replayButton").addEventListener("click", () => {
+    questions = buildRunQuestions();
+    index = 0; lives = 3; score = 0; streak = 0;
+    show(game); render();
+  });
   el("homeButton").addEventListener("click", () => show(welcome));
   el("accountButton").addEventListener("click", openAccount);
   el("closeAccountButton").addEventListener("click", () => el("accountDialog").close());
@@ -506,6 +685,28 @@
   el("settingsButton").addEventListener("click", openSettings);
   el("openSettingsFromAccount").addEventListener("click", () => { el("accountDialog").close(); openSettings(); });
   el("settingsBackButton").addEventListener("click", () => show(previousScreen || welcome));
+
+  el("triviaCsvFile").addEventListener("change", async event => {
+    resetTriviaPreview();
+    const file = event.target.files?.[0];
+    if(!file){
+      state.triviaCsv = "";
+      el("triviaValidateButton").disabled = true;
+      return;
+    }
+    try {
+      state.triviaCsv = await file.text();
+      el("triviaValidateButton").disabled = !state.triviaCsv;
+      el("triviaImportMessage").textContent = `${file.name} loaded. Validate it before importing.`;
+    } catch (_) {
+      state.triviaCsv = "";
+      el("triviaValidateButton").disabled = true;
+      el("triviaImportMessage").textContent = "Could not read that CSV file.";
+    }
+  });
+  el("triviaValidateButton").addEventListener("click", validateTriviaCsv);
+  el("triviaImportButton").addEventListener("click", importTriviaCsv);
+  el("triviaClearButton").addEventListener("click", clearTriviaBank);
 
   el("tmdbForm").addEventListener("submit", async event => {
     event.preventDefault();
@@ -571,5 +772,5 @@
 
   renderAuth();
   restoreSession();
-  loadHeroRail();
+  loadQuestionBank().finally(() => loadHeroRail());
 })();
