@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f3e8">
   <meta name="description" content="Cinemasters Movie Ladder — climb the movie trivia ladder.">
   <title>Cinemasters Movie Ladder</title>
-  <link rel="stylesheet" href="styles.css?v=20261002-csv-import-1">
+  <link rel="stylesheet" href="styles.css?v=20261002-run-history-1">
 </head>
 <body>
   <main class="app-shell">
@@ -16,6 +16,7 @@
         <strong>Movie Ladder</strong>
       </button>
       <div class="toolbar-actions">
+        <button id="runsButton" class="toolbar-button" type="button">Runs</button>
         <button id="settingsButton" class="toolbar-button" type="button" hidden>Settings</button>
         <button id="accountButton" class="toolbar-button" type="button">Sign in</button>
       </div>
@@ -98,14 +99,18 @@
 
     <section id="result" class="screen" aria-live="polite">
       <div class="result-card">
-        <div id="resultEmoji" class="result-emoji">🎬</div>
-        <h2 id="resultTitle">The credits roll…</h2>
+        <div id="resultGraphic" class="result-graphic" aria-hidden="true"></div>
+        <div id="resultRank" class="result-rank">Moviegoer</div>
+        <h2 id="resultTitle">Run complete</h2>
         <p id="resultCopy"></p>
         <div class="stats-grid result-stats">
           <div><strong id="finalRung">0</strong><span>Rung reached</span></div>
           <div><strong id="finalScore">0</strong><span>Points</span></div>
+          <div><strong id="finalBestStreak">0</strong><span>Best streak</span></div>
         </div>
+        <div id="personalBestBanner" class="personal-best-banner" hidden>🏆 New personal best</div>
         <button id="replayButton" class="primary-button" type="button">Play Again</button>
+        <button id="resultRunsButton" class="secondary-button full-width" type="button">View Run History</button>
       </div>
     </section>
 
@@ -209,6 +214,34 @@
     </section>
   </main>
 
+  <dialog id="runsDialog" class="runs-dialog">
+    <div class="dialog-heading">
+      <div>
+        <div class="eyebrow dark">Movie Ladder</div>
+        <h2>Run History</h2>
+      </div>
+      <button id="closeRunsButton" class="icon-button" type="button" aria-label="Close run history">×</button>
+    </div>
+
+    <div id="runsIdentityNote" class="small-copy"></div>
+
+    <div class="runs-summary-grid">
+      <div><strong id="runsBestScore">0</strong><span>Best score</span></div>
+      <div><strong id="runsHighestRung">0</strong><span>Highest rung</span></div>
+      <div><strong id="runsClears">0</strong><span>Cinemaster clears</span></div>
+    </div>
+
+    <section class="runs-section">
+      <h3>Best Runs</h3>
+      <div id="bestRunsList" class="runs-list"></div>
+    </section>
+
+    <section class="runs-section">
+      <h3>Recent Runs</h3>
+      <div id="recentRunsList" class="runs-list"></div>
+    </section>
+  </dialog>
+
   <dialog id="accountDialog" class="account-dialog">
     <div class="dialog-heading">
       <div>
@@ -232,8 +265,8 @@
     </div>
   </dialog>
 
-  <script src="config.js?v=20261002-csv-import-1"></script>
-  <script src="data/questions.js?v=20261002-csv-import-1"></script>
-  <script src="app.js?v=20261002-csv-import-1"></script>
+  <script src="config.js?v=20261002-run-history-1"></script>
+  <script src="data/questions.js?v=20261002-run-history-1"></script>
+  <script src="app.js?v=20261002-run-history-1"></script>
 </body>
 </html>
