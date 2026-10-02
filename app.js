@@ -465,6 +465,7 @@
     fallback.hidden = true;
     grid.hidden = false;
     grid.replaceChildren();
+    grid.classList.remove("order-correct","order-wrong");
     const orderMode = isMovieOrderQuestion(q);
     grid.classList.toggle("order-grid", orderMode);
     orderSelections = [];
@@ -671,9 +672,20 @@
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
     el("pointsBadge").textContent = "Worth " + q.points.toLocaleString() + " pts";
     const orderMode = isMovieOrderQuestion(q);
-    el("questionText").textContent = orderMode
+    let questionCopy = orderMode
       ? "Tap the movies in release order, earliest to latest."
       : q.question;
+
+    if(
+      !orderMode &&
+      q.year &&
+      /academy awards/i.test(String(questionCopy)) &&
+      !new RegExp("\\(" + q.year + "\\)").test(String(questionCopy))
+    ){
+      questionCopy = String(questionCopy).replace(/\?$/, "") + " (" + q.year + ")?";
+    }
+
+    el("questionText").textContent = questionCopy;
 
     const answers = el("answers");
     answers.innerHTML = "";
