@@ -1,0 +1,101 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0a0a0f">
+  <title>Cinemasters Movie Ladder</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section id="welcome" class="screen active">
+      <div class="hero-card">
+        <div class="hero-art">
+          <div class="hero-overlay"></div>
+          <div class="hero-copy">
+            <div class="eyebrow">Cinemasters of the Universe</div>
+            <h1>Movie Ladder</h1>
+          </div>
+        </div>
+        <div class="hero-body">
+          <p>Climb from Moviegoer to Cinemaster. Questions get harder as you rise. Miss three and the credits roll.</p>
+          <div class="stats-grid">
+            <div><strong>10</strong><span>Rungs</span></div>
+            <div><strong>🎟️🎟️🎟️</strong><span>Tickets</span></div>
+            <div><strong>5,500</strong><span>Max pts</span></div>
+          </div>
+          <button id="startButton" class="primary-button">Start Climbing</button>
+        </div>
+      </div>
+    </section>
+
+    <section id="game" class="screen" aria-live="polite">
+      <header class="game-header">
+        <div>
+          <div class="eyebrow dark">Current rank</div>
+          <div id="rankLabel" class="rank-label">Moviegoer</div>
+        </div>
+        <div class="score-block">
+          <div id="ticketsLabel" class="tickets">🎟️ 🎟️ 🎟️</div>
+          <div id="scoreLabel" class="score">0 pts</div>
+        </div>
+      </header>
+
+      <div class="progress-card">
+        <div class="progress-meta">
+          <span id="rungLabel">Rung 1 / 10</span>
+          <span id="difficultyLabel">Warm-up</span>
+        </div>
+        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
+      </div>
+
+      <article class="question-card">
+        <div class="artwork-wrap">
+          <img id="movieArtwork" alt="" hidden>
+          <div id="artworkFallback" class="artwork-fallback">
+            <div class="film-strip"></div>
+            <div id="fallbackTitle" class="fallback-title">Movie Ladder</div>
+          </div>
+          <div class="artwork-shade"></div>
+          <div class="artwork-badge">TMDb-ready media slot</div>
+          <div class="movie-meta">
+            <div>
+              <h2 id="movieTitle">Movie</h2>
+              <div id="movieSubtitle">Year • Genre</div>
+            </div>
+            <div id="pointsBadge" class="points-badge">+100</div>
+          </div>
+        </div>
+
+        <div class="question-body">
+          <div class="chips">
+            <span id="sourceChip" class="chip">Credits</span>
+            <span id="typeChip" class="chip">Multiple choice</span>
+          </div>
+          <h3 id="questionText">Question</h3>
+          <div id="answers" class="answers"></div>
+          <div id="feedback" class="feedback" hidden></div>
+          <button id="nextButton" class="primary-button" hidden>Next rung</button>
+        </div>
+      </article>
+    </section>
+
+    <section id="result" class="screen" aria-live="polite">
+      <div class="result-card">
+        <div id="resultEmoji" class="result-emoji">🎬</div>
+        <h2 id="resultTitle">The credits roll…</h2>
+        <p id="resultCopy"></p>
+        <div class="stats-grid result-stats">
+          <div><strong id="finalRung">0</strong><span>Rung reached</span></div>
+          <div><strong id="finalScore">0</strong><span>Points</span></div>
+        </div>
+        <button id="replayButton" class="primary-button">Play Again</button>
+      </div>
+    </section>
+  </main>
+
+  <script src="data/questions.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
