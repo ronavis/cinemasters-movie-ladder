@@ -1,0 +1,28 @@
+name: Identity Service Smoke Test
+
+on:
+  push:
+    paths:
+      - ".github/workflows/identity-smoke.yml"
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check health endpoint
+        run: |
+          set -euo pipefail
+          curl -fsS https://midconversation.com/arcade-api/health | tee /tmp/health.json
+          grep -q '"status"' /tmp/health.json
+
+      - name: Check Google client configuration
+        run: |
+          set -euo pipefail
+          curl -fsS https://midconversation.com/arcade-api/config | tee /tmp/config.json
+          grep -q '569822322277-ng39tk1vcecgjfes85bs16umb5k47mc7.apps.googleusercontent.com' /tmp/config.json
+
+      - name: Check GitHub Pages CORS
+        run: |
+          set -euo pipefail
+          curl -fsSI -H 'Origin: https://ronavis.github.io' https://midconversation.com/arcade-api/health | tee /tmp/headers.txt
+          grep -qi '^access-control-allow-origin: https://ronavis.github.io' /tmp/headers.txt
