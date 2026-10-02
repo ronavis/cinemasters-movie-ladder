@@ -6,20 +6,20 @@
   <meta name="theme-color" content="#f7f3e8">
   <meta name="description" content="Cinemasters Movie Ladder — climb the movie trivia ladder.">
   <title>Cinemasters Movie Ladder</title>
-  <link rel="stylesheet" href="styles.css?v=20261002-order-history-1">
+  <link rel="stylesheet" href="styles.css?v=20261002-mobile-fit-1">
 </head>
 <body>
   <main class="app-shell">
-    <header class="app-toolbar">
-      <button id="homeButton" class="brand-button" type="button" aria-label="Movie Ladder home">
-        <span class="brand-kicker">Cinemasters</span>
-        <strong>Movie Ladder</strong>
-      </button>
-      <div class="toolbar-actions">
-        <button id="runsButton" class="toolbar-button" type="button">Runs</button>
-        <button id="settingsButton" class="toolbar-button" type="button" hidden>Settings</button>
-        <button id="accountButton" class="toolbar-button" type="button">Sign in</button>
-      </div>
+    <header class="app-toolbar app-toolbar-minimal">
+      <details id="appMenu" class="app-menu">
+        <summary class="menu-toggle" aria-label="Open Movie Ladder menu">☰</summary>
+        <div class="menu-panel">
+          <button id="homeButton" class="menu-item" type="button">Home</button>
+          <button id="runsButton" class="menu-item" type="button">Runs</button>
+          <button id="settingsButton" class="menu-item" type="button" hidden>Settings</button>
+          <button id="accountButton" class="menu-item" type="button">Sign in</button>
+        </div>
+      </details>
     </header>
 
     <section id="welcome" class="screen active">
@@ -50,25 +50,24 @@
 
     <section id="game" class="screen" aria-live="polite">
       <div class="game-stage">
-      <header class="game-header">
-        <div>
-          <div class="eyebrow dark">Current rank</div>
-          <div id="rankLabel" class="rank-label">Moviegoer</div>
+      <div class="game-hud">
+        <div class="hud-top">
+          <div class="hud-rank">
+            <span class="hud-label">Rank</span>
+            <strong id="rankLabel" class="rank-label">Moviegoer</strong>
+          </div>
+          <div class="hud-rung">
+            <strong id="rungLabel">1 / 10</strong>
+            <span id="difficultyLabel">Warm-up</span>
+          </div>
+          <div class="score-block">
+            <div id="ticketsLabel" class="tickets">🎟️ 🎟️ 🎟️</div>
+            <div id="scoreLabel" class="score">0 pts</div>
+            <div id="streakLabel" class="streak-label" hidden>🔥 2 streak</div>
+          </div>
         </div>
-        <div class="score-block">
-          <div id="ticketsLabel" class="tickets">🎟️ 🎟️ 🎟️</div>
-          <div id="scoreLabel" class="score">0 pts</div>
-          <div id="streakLabel" class="streak-label" hidden>🔥 2 streak</div>
-        </div>
-      </header>
-
-      <div class="progress-card">
-        <div class="progress-meta">
-          <span id="rungLabel">Rung 1 / 10</span>
-          <span id="difficultyLabel">Warm-up</span>
-        </div>
-        <div class="progress-track"><div id="progressBar" class="progress-bar"></div></div>
-        <div id="ladderDots" class="ladder-dots" aria-label="Movie Ladder progress"></div>
+        <div id="ladderDots" class="ladder-dots hud-ladder" aria-label="Movie Ladder progress"></div>
+        <div class="progress-track" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
       </div>
 
       <article class="question-card">
@@ -265,8 +264,8 @@
     </div>
   </dialog>
 
-  <script src="config.js?v=20261002-order-history-1"></script>
-  <script src="data/questions.js?v=20261002-order-history-1"></script>
-  <script src="app.js?v=20261002-order-history-1"></script>
+  <script src="config.js?v=20261002-mobile-fit-1"></script>
+  <script src="data/questions.js?v=20261002-mobile-fit-1"></script>
+  <script src="app.js?v=20261002-mobile-fit-1"></script>
 </body>
 </html>
