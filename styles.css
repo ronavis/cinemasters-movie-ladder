@@ -624,3 +624,10 @@ h1{
     aspect-ratio:2/3;
   }
 }
+
+
+/* Ensure the loaded poster can actually replace the blue fallback layer. */
+.artwork-wrap.has-artwork .artwork-fallback,
+.artwork-fallback[hidden]{
+  display:none!important;
+}
