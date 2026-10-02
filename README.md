@@ -581,6 +581,18 @@ The CSV-import backend has explicit coverage for:
 
 # Current content strategy
 
+## Replay variety
+
+Question selection uses a persistent per-rung recent-history bag rather than unrestricted random picks.
+
+For each rung, Movie Ladder avoids recently seen questions until the rest of that rung's current pool has had a chance to appear. The history is stored locally in the browser and automatically adapts when questions are added or removed.
+
+More questions still increase variety, but repeated runs should no longer feel like ten independent coin flips.
+
+## Gameplay scrolling
+
+After an answer is resolved, Movie Ladder scrolls the feedback and **Next rung** control into view. Advancing to the next rung scrolls the new compact HUD back into view so phone players do not have to manually chase the game up and down the page.
+
 ## Era and difficulty guidance
 
 Movie Ladder should lean heavily toward **1970s through current releases**.
