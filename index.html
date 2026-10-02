@@ -4,11 +4,23 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#0a0a0f">
+  <meta name="description" content="Cinemasters Movie Ladder — climb the movie trivia ladder.">
   <title>Cinemasters Movie Ladder</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <main class="app-shell">
+    <header class="app-toolbar">
+      <button id="homeButton" class="brand-button" type="button" aria-label="Movie Ladder home">
+        <span class="brand-kicker">Cinemasters</span>
+        <strong>Movie Ladder</strong>
+      </button>
+      <div class="toolbar-actions">
+        <button id="settingsButton" class="toolbar-button" type="button" hidden>Settings</button>
+        <button id="accountButton" class="toolbar-button" type="button">Sign in</button>
+      </div>
+    </header>
+
     <section id="welcome" class="screen active">
       <div class="hero-card">
         <div class="hero-art">
@@ -25,9 +37,13 @@
             <div><strong>🎟️🎟️🎟️</strong><span>Tickets</span></div>
             <div><strong>5,500</strong><span>Max pts</span></div>
           </div>
-          <button id="startButton" class="primary-button">Start Climbing</button>
+          <button id="startButton" class="primary-button" type="button">Start Climbing</button>
         </div>
       </div>
+      <section class="credits-card" aria-label="Data credits">
+        <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>
+        <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+      </section>
     </section>
 
     <section id="game" class="screen" aria-live="polite">
@@ -58,7 +74,7 @@
             <div id="fallbackTitle" class="fallback-title">Movie Ladder</div>
           </div>
           <div class="artwork-shade"></div>
-          <div class="artwork-badge">TMDb-ready media slot</div>
+          <div id="artworkBadge" class="artwork-badge">Artwork loading…</div>
           <div class="movie-meta">
             <div>
               <h2 id="movieTitle">Movie</h2>
@@ -76,7 +92,7 @@
           <h3 id="questionText">Question</h3>
           <div id="answers" class="answers"></div>
           <div id="feedback" class="feedback" hidden></div>
-          <button id="nextButton" class="primary-button" hidden>Next rung</button>
+          <button id="nextButton" class="primary-button" type="button" hidden>Next rung</button>
         </div>
       </article>
     </section>
@@ -90,11 +106,84 @@
           <div><strong id="finalRung">0</strong><span>Rung reached</span></div>
           <div><strong id="finalScore">0</strong><span>Points</span></div>
         </div>
-        <button id="replayButton" class="primary-button">Play Again</button>
+        <button id="replayButton" class="primary-button" type="button">Play Again</button>
+      </div>
+    </section>
+
+    <section id="settings" class="screen" aria-labelledby="settingsTitle">
+      <div class="settings-card">
+        <div class="settings-heading">
+          <div>
+            <div class="eyebrow dark">Administrator</div>
+            <h2 id="settingsTitle">Settings</h2>
+          </div>
+          <button id="settingsBackButton" class="toolbar-button" type="button">Done</button>
+        </div>
+
+        <section class="settings-section">
+          <div class="settings-row">
+            <div>
+              <h3>TMDB connection</h3>
+              <p>Movie metadata and artwork flow through the private Movie Ladder API. The credential is never returned to this browser after it is saved.</p>
+            </div>
+            <div id="tmdbStatusPill" class="status-pill">Checking…</div>
+          </div>
+          <p id="tmdbAccountLabel" class="small-copy"></p>
+          <p id="tmdbVerifiedLabel" class="small-copy"></p>
+
+          <form id="tmdbForm" class="settings-form">
+            <label for="tmdbToken">API Read Access Token</label>
+            <input id="tmdbToken" type="password" autocomplete="off" spellcheck="false" placeholder="Paste TMDB read token">
+            <p class="small-copy">The token is sent over HTTPS to the VPS, verified with TMDB, saved in private server storage, and then cleared from this form.</p>
+            <button class="primary-button" type="submit">Save &amp; verify TMDB</button>
+          </form>
+
+          <div class="settings-actions">
+            <button id="tmdbTestButton" class="secondary-button" type="button">Test saved connection</button>
+            <button id="tmdbDisconnectButton" class="danger-button" type="button">Disconnect TMDB</button>
+          </div>
+          <p id="tmdbMessage" class="settings-message" role="status" aria-live="polite"></p>
+        </section>
+
+        <section class="settings-section">
+          <h3>Admin authority</h3>
+          <p id="adminIdentity">Signed-in administrator</p>
+          <p class="small-copy">This page is hidden from other players, and every settings endpoint independently checks the Google identity on the server.</p>
+        </section>
+
+        <section class="settings-section">
+          <h3>TMDB attribution</h3>
+          <p><a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">The Movie Database (TMDB)</a></p>
+          <p class="small-copy">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
+        </section>
       </div>
     </section>
   </main>
 
+  <dialog id="accountDialog" class="account-dialog">
+    <div class="dialog-heading">
+      <div>
+        <div class="eyebrow dark">Movie Ladder</div>
+        <h2 id="accountDialogTitle">Sign in</h2>
+      </div>
+      <button id="closeAccountButton" class="icon-button" type="button" aria-label="Close account">×</button>
+    </div>
+
+    <div id="signedOutPanel">
+      <p>Playing does not require an account. Sign in to identify an administrator now and to support personal scores later.</p>
+      <div id="googleButton" class="google-button"></div>
+      <p id="loginHelp" class="small-copy">Preparing Google sign-in…</p>
+    </div>
+
+    <div id="signedInPanel" hidden>
+      <p id="accountIdentity"></p>
+      <p id="accountRole" class="small-copy"></p>
+      <button id="openSettingsFromAccount" class="primary-button" type="button" hidden>Open admin settings</button>
+      <button id="signOutButton" class="secondary-button full-width" type="button">Sign out</button>
+    </div>
+  </dialog>
+
+  <script src="config.js"></script>
   <script src="data/questions.js"></script>
   <script src="app.js"></script>
 </body>
