@@ -27,6 +27,29 @@
     return base + path;
   }
 
+  function identityApiUrl(path){
+    const base = String(config.identityApiBase || "").replace(/\/$/,"");
+    if(!base) throw new Error("Movie Ladder identity service is not configured yet.");
+    return base + path;
+  }
+
+  async function identityApi(path, options = {}){
+    const headers = new Headers(options.headers || {});
+    if(state.token) headers.set("Authorization", "Bearer " + state.token);
+    let response;
+    try {
+      response = await fetch(identityApiUrl(path), {...options, headers, cache:"no-store"});
+    } catch (_) {
+      const error = new Error("The Google identity service could not be reached.");
+      error.code = "IDENTITY_OFFLINE";
+      throw error;
+    }
+    let payload = {};
+    try { payload = await response.json(); } catch (_) {}
+    if(!response.ok) throw new Error(payload.error || "Google identity verification failed.");
+    return payload;
+  }
+
   async function api(path, options = {}){
     const headers = new Headers(options.headers || {});
     if(state.token) headers.set("Authorization", "Bearer " + state.token);
@@ -162,7 +185,7 @@
       el("accountIdentity").textContent = state.user.email;
       el("accountRole").textContent = state.user.admin ? "Administrator" : "Player";
       el("openSettingsFromAccount").hidden = !state.user.admin;
-      if(state.user.admin) el("adminIdentity").textContent = state.user.email + " • server-verified administrator";
+      if(state.user.admin) el("adminIdentity").textContent = state.user.email + " • Google-verified Movie Ladder administrator";
     } else {
       el("accountDialogTitle").textContent = "Sign in";
     }
@@ -181,10 +204,15 @@
 
   async function signIn(token){
     state.token = token;
-    state.user = await api("/api/session");
+    const verified = await identityApi("/session");
+    const email = String(verified.email || "").toLowerCase();
+    state.user = {
+      email,
+      admin: Boolean(email && config.adminEmail && email === String(config.adminEmail).toLowerCase())
+    };
     try { sessionStorage.setItem("movie_ladder_session", token); } catch (_) {}
     renderAuth();
-    if(state.user.admin) await refreshTmdbStatus();
+    if(state.user.admin) refreshTmdbStatus();
     el("accountDialog").close();
   }
 
@@ -206,7 +234,7 @@
     el("loginHelp").textContent = "Checking account service…";
     el("googleButton").replaceChildren();
     try {
-      await api("/api/health");
+      await identityApi("/health");
       el("loginHelp").textContent = "Loading Google sign-in…";
       await ensureGoogle();
       google.accounts.id.initialize({
@@ -221,10 +249,10 @@
       google.accounts.id.renderButton(el("googleButton"), {theme:"outline",size:"large",text:"signin_with",width:280});
       el("loginHelp").textContent = "Google verifies identity; the game never receives your Google password.";
     } catch(error){
-      el("loginHelp").textContent = error.code === "SERVICE_OFFLINE"
-        ? "Google sign-in is being wired up on the VPS. You can keep playing without an account for now."
+      el("loginHelp").textContent = error.code === "IDENTITY_OFFLINE"
+        ? "Google sign-in is temporarily unavailable. You can keep playing without an account."
         : error.message;
-      el("loginHelp").classList.toggle("service-offline", error.code === "SERVICE_OFFLINE");
+      el("loginHelp").classList.toggle("service-offline", error.code === "IDENTITY_OFFLINE");
     }
   }
 
@@ -336,7 +364,12 @@
     try { state.token = sessionStorage.getItem("movie_ladder_session") || ""; } catch (_) {}
     if(!state.token){ renderAuth(); return; }
     try {
-      state.user = await api("/api/session");
+      const verified = await identityApi("/session");
+      const email = String(verified.email || "").toLowerCase();
+      state.user = {
+        email,
+        admin: Boolean(email && config.adminEmail && email === String(config.adminEmail).toLowerCase())
+      };
       renderAuth();
       if(state.user.admin) refreshTmdbStatus();
     } catch (_) {
