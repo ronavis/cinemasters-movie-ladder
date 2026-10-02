@@ -22,6 +22,9 @@ Movie Ladder is built around a 10-rung run. The player starts as a Moviegoer, cl
 - 2x2 poster-grid answers when all four choices are movies
 - server-backed CSV question imports
 - one question selected from each rung's question pool for every new run
+- rank-specific result graphics
+- recent run history and personal bests
+- signed-in run history synced through the VPS
 
 The frontend is static GitHub Pages. The private API runs inside the existing Nick's Arcade Flask service on the VPS.
 
@@ -333,6 +336,75 @@ The TMDb API Read Access Token:
 The browser receives normalized public movie/person information, not the TMDb credential.
 
 This product uses the TMDb API but is not endorsed or certified by TMDb.
+
+---
+
+# Run history, best runs, and result ranks
+
+Movie Ladder records a summary when a run ends.
+
+The result screen uses six outcome ranks:
+
+- **Moviegoer**
+- **Video Store Clerk**
+- **Projectionist**
+- **Film Buff**
+- **Movie Scholar**
+- **Cinemaster**
+
+**Cinemaster is reserved for clearing all 10 rungs.** Reaching Rung 10 and losing there still finishes as Movie Scholar.
+
+Each rank has its own result graphic and result copy.
+
+## Viewing runs
+
+Use the **Runs** button in the Movie Ladder toolbar, or **View Run History** on the result screen.
+
+The history view shows:
+
+- best score;
+- highest rung reached;
+- number of Cinemaster clears;
+- the five best runs by score;
+- recent runs.
+
+Best Runs are ordered primarily by score, then by completed clear, then by rung reached.
+
+## Anonymous play
+
+Anonymous runs are saved in browser `localStorage` on that device.
+
+The browser keeps up to 50 local run summaries.
+
+Anonymous history does not automatically exist on another device.
+
+## Signed-in play
+
+Signed-in runs are also saved to the private VPS and tied to the verified Google account identity.
+
+When an existing signed-in session is restored, Movie Ladder attempts to sync local device runs to the account. The same happens when a player signs in manually.
+
+This lets signed-in run history follow the player across devices while preserving anonymous play.
+
+The server stores run summaries only:
+
+- run UUID;
+- score;
+- rung reached;
+- completed/not completed;
+- result rank;
+- lives remaining;
+- correct answer count;
+- wrong answer count;
+- best streak;
+- server timestamp.
+
+Run history is private to the authenticated player. It is not a public leaderboard.
+
+Server endpoints:
+
+- `POST /arcade-api/movie-ladder/runs`
+- `GET /arcade-api/movie-ladder/runs`
 
 ---
 
