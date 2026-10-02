@@ -1334,3 +1334,61 @@ h1{
     max-width:66px;
   }
 }
+
+
+/* === Integrated menu + de-duplicated movie metadata === */
+.app-toolbar-minimal{
+  position:absolute;
+  top:16px;
+  right:24px;
+  z-index:70;
+  min-height:0;
+  margin:0;
+}
+.menu-toggle{
+  background:rgba(255,253,248,.96);
+  backdrop-filter:blur(8px);
+}
+.menu-panel{
+  top:44px;
+}
+.game-hud{
+  padding-right:62px;
+}
+
+/* The poster/fallback already identifies the movie. Keep only the points badge below it. */
+.movie-line{
+  min-height:0;
+  justify-content:flex-end;
+  margin-bottom:6px;
+}
+.movie-line > div:first-child{
+  display:none!important;
+}
+
+/* Keep the welcome rail visually locked to four equal poster slots. */
+.hero-poster-rail{
+  grid-template-columns:repeat(4,minmax(0,1fr));
+}
+.hero-poster-rail img{
+  min-width:0;
+}
+
+/* The menu now sits inside the active surface instead of consuming its own row. */
+@media (max-width:390px){
+  .app-toolbar-minimal{
+    top:12px;
+    right:16px;
+  }
+  .game-hud{
+    padding-right:54px;
+  }
+}
+@media (max-width:340px){
+  .app-toolbar-minimal{
+    right:14px;
+  }
+  .game-hud{
+    padding-right:50px;
+  }
+}
