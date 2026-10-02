@@ -123,8 +123,7 @@
       img.onerror = () => setArtworkFallback(q.movie);
       img.src = image;
       img.alt = (media.title || q.movie) + " poster artwork";
-    } catch (error) {
-      if(!/could not find that movie/i.test(error.message)) tmdbFetchEnabled = false;
+    } catch (_) {
       setArtworkFallback(q.movie);
     }
   }
