@@ -1,0 +1,40 @@
+name: Validate Movie Ladder
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Check browser JavaScript
+        run: |
+          node --check app.js
+          node --check data/questions.js
+          node --check config.js
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install API dependencies
+        run: python -m pip install -r server/requirements.txt
+
+      - name: Check API syntax and app construction
+        run: |
+          python -m py_compile server/app.py
+          python - <<'PY'
+          import tempfile
+          from server.app import create_app
+          app = create_app({"TESTING": True, "DATA_DIR": tempfile.mkdtemp()})
+          assert app.url_map
+          print("Movie Ladder API routes:", len(app.url_map._rules))
+          PY
