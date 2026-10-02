@@ -11,7 +11,9 @@
   const mediaCache = new Map();
   const personCache = new Map();
 
-  let index = 0, lives = 3, score = 0, streak = 0, locked = false;
+  let index = 0, lives = 3, score = 0, streak = 0, maxStreak = 0;
+  let correctCount = 0, wrongCount = 0, locked = false, runRecorded = false;
+  let currentRunId = "";
   let previousScreen = welcome;
   let googlePromise = null;
   let tmdbFetchEnabled = true;
@@ -76,6 +78,194 @@
     try { payload = await response.json(); } catch (_) {}
     if(!response.ok) throw new Error(payload.error || "Movie Ladder account service returned an error.");
     return payload;
+  }
+
+  const RUNS_KEY = "movie_ladder_runs_v1";
+
+  const outcomeArt = {
+    "Moviegoer": `<svg viewBox="0 0 240 180" role="img" aria-label="Moviegoer ticket badge"><rect x="24" y="42" width="192" height="96" rx="18" fill="#f1d34f"/><circle cx="24" cy="90" r="13" fill="#fffdf8"/><circle cx="216" cy="90" r="13" fill="#fffdf8"/><path d="M78 67h84v46H78z" fill="#245f50"/><path d="M94 78h52v24H94z" fill="#fffdf8"/><circle cx="106" cy="90" r="5" fill="#ef6a2f"/><circle cx="134" cy="90" r="5" fill="#ef6a2f"/></svg>`,
+    "Video Store Clerk": `<svg viewBox="0 0 240 180" role="img" aria-label="Video cassette badge"><rect x="30" y="38" width="180" height="104" rx="12" fill="#3477b2"/><rect x="48" y="54" width="144" height="66" rx="8" fill="#fffdf8"/><circle cx="86" cy="87" r="20" fill="#173f36"/><circle cx="154" cy="87" r="20" fill="#173f36"/><circle cx="86" cy="87" r="8" fill="#f1d34f"/><circle cx="154" cy="87" r="8" fill="#f1d34f"/><rect x="84" y="126" width="72" height="10" rx="4" fill="#173f36"/></svg>`,
+    "Projectionist": `<svg viewBox="0 0 240 180" role="img" aria-label="Projectionist film reel badge"><circle cx="88" cy="86" r="52" fill="#245f50"/><circle cx="88" cy="86" r="12" fill="#fffdf8"/><circle cx="88" cy="52" r="12" fill="#f1d34f"/><circle cx="58" cy="80" r="12" fill="#f1d34f"/><circle cx="70" cy="113" r="12" fill="#f1d34f"/><circle cx="112" cy="113" r="12" fill="#f1d34f"/><circle cx="118" cy="72" r="12" fill="#f1d34f"/><path d="M132 72h48v28h-48z" fill="#3477b2"/><path d="M180 77l42-18v54l-42-18z" fill="#ef6a2f"/><rect x="114" y="126" width="84" height="12" rx="6" fill="#173f36"/></svg>`,
+    "Film Buff": `<svg viewBox="0 0 240 180" role="img" aria-label="Film Buff clapperboard badge"><rect x="38" y="70" width="164" height="78" rx="10" fill="#245f50"/><path d="M36 66l14-40 164 32-11 34z" fill="#173f36"/><path d="M62 31l20 4-20 33-20-4zM111 40l20 4-20 33-20-4zM160 49l20 4-20 33-20-4z" fill="#f1d34f"/><rect x="58" y="92" width="124" height="10" rx="5" fill="#fffdf8"/><rect x="58" y="116" width="82" height="10" rx="5" fill="#fffdf8"/></svg>`,
+    "Movie Scholar": `<svg viewBox="0 0 240 180" role="img" aria-label="Movie Scholar book and film badge"><path d="M30 50q48-16 90 8v88q-42-24-90-8z" fill="#3477b2"/><path d="M210 50q-48-16-90 8v88q42-24 90-8z" fill="#245f50"/><path d="M120 58v88" stroke="#fffdf8" stroke-width="5"/><circle cx="172" cy="78" r="28" fill="#f1d34f"/><circle cx="172" cy="78" r="6" fill="#173f36"/><circle cx="172" cy="62" r="6" fill="#173f36"/><circle cx="158" cy="84" r="6" fill="#173f36"/><circle cx="184" cy="89" r="6" fill="#173f36"/></svg>`,
+    "Cinemaster": `<svg viewBox="0 0 240 180" role="img" aria-label="Cinemaster trophy badge"><path d="M76 32h88v58q0 44-44 44T76 90z" fill="#f1d34f"/><path d="M76 48H46q0 42 38 48M164 48h30q0 42-38 48" fill="none" stroke="#ef6a2f" stroke-width="12" stroke-linecap="round"/><circle cx="120" cy="78" r="27" fill="#245f50"/><circle cx="120" cy="78" r="6" fill="#fffdf8"/><circle cx="120" cy="61" r="6" fill="#fffdf8"/><circle cx="104" cy="83" r="6" fill="#fffdf8"/><circle cx="135" cy="84" r="6" fill="#fffdf8"/><rect x="109" y="130" width="22" height="20" fill="#173f36"/><rect x="82" y="148" width="76" height="12" rx="6" fill="#173f36"/></svg>`
+  };
+
+  const outcomeCopy = {
+    "Moviegoer": ["Opening Night", "The trailers are over, but the lobby is still open. Another run awaits."],
+    "Video Store Clerk": ["Rewind & Return", "You know your way around the shelves. Time to recommend yourself another run."],
+    "Projectionist": ["Keep the Reel Turning", "You made it into the booth. A little more film knowledge keeps the picture rolling."],
+    "Film Buff": ["Certified Film Buff", "Now we're talking. You climbed past casual movie night and into serious territory."],
+    "Movie Scholar": ["So Close to Mastery", "That was a deep run. The last stretch is where Movie Ladder starts showing its teeth."],
+    "Cinemaster": ["Cinemaster!", "You cleared the entire ladder. The house lights are yours."]
+  };
+
+  function resultRankFor(rungReached, completed){
+    if(completed) return "Cinemaster";
+    if(rungReached <= 1) return "Moviegoer";
+    if(rungReached <= 3) return "Video Store Clerk";
+    if(rungReached <= 5) return "Projectionist";
+    if(rungReached <= 7) return "Film Buff";
+    return "Movie Scholar";
+  }
+
+  function newRunId(){
+    if(window.crypto?.randomUUID) return crypto.randomUUID();
+    return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, char => {
+      const value = Math.random() * 16 | 0;
+      return (char === "x" ? value : (value & 3 | 8)).toString(16);
+    });
+  }
+
+  function loadLocalRuns(){
+    try {
+      const runs = JSON.parse(localStorage.getItem(RUNS_KEY) || "[]");
+      return Array.isArray(runs) ? runs.filter(run => run && run.id) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveLocalRun(run){
+    const runs = loadLocalRuns().filter(existing => existing.id !== run.id);
+    runs.unshift(run);
+    try { localStorage.setItem(RUNS_KEY, JSON.stringify(runs.slice(0,50))); } catch (_) {}
+  }
+
+  function summarizeRuns(runs){
+    return {
+      totalRuns:runs.length,
+      bestScore:runs.reduce((best, run) => Math.max(best, Number(run.score) || 0), 0),
+      highestRung:runs.reduce((best, run) => Math.max(best, Number(run.rungReached) || 0), 0),
+      clears:runs.filter(run => run.completed).length
+    };
+  }
+
+  function mergeRuns(...lists){
+    const byId = new Map();
+    lists.flat().forEach(run => {
+      if(run?.id && !byId.has(run.id)) byId.set(run.id, run);
+    });
+    return [...byId.values()];
+  }
+
+  function sortBestRuns(runs){
+    return [...runs].sort((a,b) =>
+      (Number(b.score)||0) - (Number(a.score)||0) ||
+      Number(Boolean(b.completed)) - Number(Boolean(a.completed)) ||
+      (Number(b.rungReached)||0) - (Number(a.rungReached)||0) ||
+      (Number(a.createdAt)||0) - (Number(b.createdAt)||0)
+    );
+  }
+
+  function resetRunState(){
+    index = 0;
+    lives = 3;
+    score = 0;
+    streak = 0;
+    maxStreak = 0;
+    correctCount = 0;
+    wrongCount = 0;
+    locked = false;
+    runRecorded = false;
+    currentRunId = newRunId();
+  }
+
+  async function syncLocalRunsToAccount(){
+    if(!state.user || !state.token) return;
+    const localRuns = loadLocalRuns();
+    await Promise.allSettled(localRuns.map(run => api("/movie-ladder/runs", {
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        id:run.id,
+        score:Number(run.score)||0,
+        rungReached:Number(run.rungReached)||1,
+        completed:Boolean(run.completed),
+        livesRemaining:Number(run.livesRemaining)||0,
+        correctCount:Number(run.correctCount)||0,
+        wrongCount:Number(run.wrongCount)||0,
+        maxStreak:Number(run.maxStreak)||0
+      })
+    })));
+  }
+
+  function formatRunDate(epoch){
+    if(!epoch) return "";
+    try {
+      return new Date(epoch * 1000).toLocaleString([], {
+        month:"short", day:"numeric", hour:"numeric", minute:"2-digit"
+      });
+    } catch (_) {
+      return "";
+    }
+  }
+
+  function renderRunList(container, runs){
+    container.replaceChildren();
+    if(!runs.length){
+      const empty = document.createElement("div");
+      empty.className = "runs-empty";
+      empty.textContent = "No runs yet. Your next climb will show up here.";
+      container.appendChild(empty);
+      return;
+    }
+    runs.forEach((run, position) => {
+      const row = document.createElement("div");
+      row.className = "run-row";
+
+      const rank = document.createElement("div");
+      rank.className = "run-rank";
+      rank.textContent = run.rank || resultRankFor(Number(run.rungReached)||1, Boolean(run.completed));
+
+      const meta = document.createElement("div");
+      meta.className = "run-meta";
+      meta.textContent = `Rung ${run.rungReached} • ${formatRunDate(run.createdAt)}`;
+
+      const scoreBox = document.createElement("div");
+      scoreBox.className = "run-score";
+      scoreBox.innerHTML = `<strong>${(Number(run.score)||0).toLocaleString()}</strong><span>pts</span>`;
+
+      if(position === 0 && container.id === "bestRunsList"){
+        const medal = document.createElement("span");
+        medal.className = "best-run-medal";
+        medal.textContent = "★";
+        row.appendChild(medal);
+      }
+
+      const text = document.createElement("div");
+      text.className = "run-text";
+      text.append(rank, meta);
+      row.append(text, scoreBox);
+      container.appendChild(row);
+    });
+  }
+
+  async function openRuns(){
+    const localRuns = loadLocalRuns();
+    let serverRuns = [];
+    if(state.user){
+      try {
+        const payload = await api("/movie-ladder/runs?limit=30");
+        serverRuns = Array.isArray(payload.recent) ? payload.recent : [];
+      } catch (_) {}
+    }
+
+    const runs = mergeRuns(localRuns, serverRuns);
+    const recent = [...runs].sort((a,b) => (Number(b.createdAt)||0) - (Number(a.createdAt)||0)).slice(0,20);
+    const best = sortBestRuns(runs).slice(0,5);
+    const summary = summarizeRuns(runs);
+
+    el("runsBestScore").textContent = summary.bestScore.toLocaleString();
+    el("runsHighestRung").textContent = summary.highestRung || "—";
+    el("runsClears").textContent = summary.clears.toLocaleString();
+    el("runsIdentityNote").textContent = state.user
+      ? "Signed-in runs sync across devices. Runs made anonymously on this device are included too."
+      : "These runs are stored on this device. Sign in to sync future and saved device runs to your account.";
+
+    renderRunList(el("bestRunsList"), best);
+    renderRunList(el("recentRunsList"), recent);
+    el("runsDialog").showModal();
   }
 
   function buildRunQuestions(){
@@ -376,11 +566,14 @@
     if(good){
       score += q.points;
       streak++;
+      correctCount++;
+      maxStreak = Math.max(maxStreak, streak);
       button.classList.add("correct");
       markAnswer(button, "✓");
       animateScore();
     } else {
       lives--;
+      wrongCount++;
       streak = 0;
       button.classList.add("wrong");
       markAnswer(button, "✕");
@@ -401,15 +594,58 @@
     next.hidden = false;
   }
 
-  function finish(won){
-    show(result);
-    el("resultEmoji").textContent = won ? "🏆" : "🎬";
-    el("resultTitle").textContent = won ? "Cinemaster!" : "The credits roll…";
+  async function finish(won){
+    const rungReached = won ? 10 : Math.min(index + 1, 10);
+    const rank = resultRankFor(rungReached, won);
+    const previousRuns = loadLocalRuns();
+    const previousBest = previousRuns.reduce((best, run) => Math.max(best, Number(run.score)||0), 0);
+
+    const run = {
+      id:currentRunId || newRunId(),
+      score,
+      rungReached,
+      completed:Boolean(won),
+      rank,
+      livesRemaining:lives,
+      correctCount,
+      wrongCount,
+      maxStreak,
+      createdAt:Math.floor(Date.now()/1000)
+    };
+
+    if(!runRecorded){
+      runRecorded = true;
+      saveLocalRun(run);
+      if(state.user){
+        api("/movie-ladder/runs", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({
+            id:run.id,
+            score:run.score,
+            rungReached:run.rungReached,
+            completed:run.completed,
+            livesRemaining:run.livesRemaining,
+            correctCount:run.correctCount,
+            wrongCount:run.wrongCount,
+            maxStreak:run.maxStreak
+          })
+        }).catch(() => {});
+      }
+    }
+
+    const [title, copy] = outcomeCopy[rank];
+    el("resultGraphic").innerHTML = outcomeArt[rank] || "";
+    el("resultRank").textContent = rank;
+    el("resultTitle").textContent = title;
     el("resultCopy").textContent = won
-      ? "You cleared the entire ladder. Personal bests, daily ranks and streaks can plug into the same signed-in account next."
-      : `Your run ended on rung ${index+1}. Three tickets keeps mistakes meaningful without making the game feel cruel.`;
-    el("finalRung").textContent = won ? questions.length : index + 1;
+      ? copy
+      : `${copy} You reached rung ${rungReached} with ${score.toLocaleString()} points.`;
+    el("finalRung").textContent = rungReached;
     el("finalScore").textContent = score.toLocaleString();
+    el("finalBestStreak").textContent = maxStreak;
+    el("personalBestBanner").hidden = !(score > previousBest);
+    show(result);
   }
 
   function renderAuth(){
@@ -451,6 +687,7 @@
     try { sessionStorage.setItem("movie_ladder_session", token); } catch (_) {}
     renderAuth();
     if(state.user.admin) refreshTmdbStatus();
+    syncLocalRunsToAccount().catch(() => {});
     el("accountDialog").close();
   }
 
@@ -665,7 +902,7 @@
 
   el("startButton").addEventListener("click", () => {
     questions = buildRunQuestions();
-    index = 0; lives = 3; score = 0; streak = 0;
+    resetRunState();
     show(game); render();
   });
   el("nextButton").addEventListener("click", () => {
@@ -675,10 +912,13 @@
   });
   el("replayButton").addEventListener("click", () => {
     questions = buildRunQuestions();
-    index = 0; lives = 3; score = 0; streak = 0;
+    resetRunState();
     show(game); render();
   });
   el("homeButton").addEventListener("click", () => show(welcome));
+  el("runsButton").addEventListener("click", openRuns);
+  el("resultRunsButton").addEventListener("click", openRuns);
+  el("closeRunsButton").addEventListener("click", () => el("runsDialog").close());
   el("accountButton").addEventListener("click", openAccount);
   el("closeAccountButton").addEventListener("click", () => el("accountDialog").close());
   el("signOutButton").addEventListener("click", signOut);
@@ -771,6 +1011,7 @@
   }
 
   renderAuth();
+  resetRunState();
   restoreSession();
   loadQuestionBank().finally(() => loadHeroRail());
 })();
