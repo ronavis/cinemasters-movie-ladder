@@ -581,6 +581,20 @@ The CSV-import backend has explicit coverage for:
 
 # Current content strategy
 
+## Era and difficulty guidance
+
+Movie Ladder should lean heavily toward **1970s through current releases**.
+
+Pre-1970 movies are still welcome, but use them sparingly so difficulty comes from movie knowledge rather than forcing otherwise strong players to blind-guess an unfamiliar era.
+
+Credits questions need extra care:
+
+- actor and director questions can appear throughout the ladder when the names are reasonably recognizable;
+- editing and cinematography are generally **Rung 10 / Cinemaster material**;
+- do not use an editor or cinematographer credit as a mid-ladder difficulty shortcut unless the person is unusually famous and the connection is broadly recognizable.
+
+The intended curve is deeper knowledge as the player climbs, not increasingly obscure production credits.
+
 The built-in questions are useful as:
 
 - a guaranteed fallback;
