@@ -27,6 +27,11 @@
     triviaValidated:false
   };
 
+  function closeAppMenu(){
+    const menu = el("appMenu");
+    if(menu) menu.removeAttribute("open");
+  }
+
   function show(screen){
     const active = screens.find(s => s.classList.contains("active"));
     if(screen === settings && active && active !== settings) previousScreen = active;
@@ -1009,14 +1014,14 @@
     resetRunState();
     show(game); render();
   });
-  el("homeButton").addEventListener("click", () => show(welcome));
-  el("runsButton").addEventListener("click", openRuns);
+  el("homeButton").addEventListener("click", () => { closeAppMenu(); show(welcome); });
+  el("runsButton").addEventListener("click", () => { closeAppMenu(); openRuns(); });
   el("resultRunsButton").addEventListener("click", openRuns);
   el("closeRunsButton").addEventListener("click", () => el("runsDialog").close());
-  el("accountButton").addEventListener("click", openAccount);
+  el("accountButton").addEventListener("click", () => { closeAppMenu(); openAccount(); });
   el("closeAccountButton").addEventListener("click", () => el("accountDialog").close());
   el("signOutButton").addEventListener("click", signOut);
-  el("settingsButton").addEventListener("click", openSettings);
+  el("settingsButton").addEventListener("click", () => { closeAppMenu(); openSettings(); });
   el("openSettingsFromAccount").addEventListener("click", () => { el("accountDialog").close(); openSettings(); });
   el("settingsBackButton").addEventListener("click", () => show(previousScreen || welcome));
 
