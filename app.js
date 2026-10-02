@@ -103,12 +103,53 @@
   }
 
   function setArtworkFallback(title){
-    const wrap = el("artworkWrap"), fallback = el("artworkFallback");
-    wrap.classList.remove("has-artwork");
+    const wrap = el("artworkWrap"), fallback = el("artworkFallback"), grid = el("posterGrid");
+    wrap.classList.remove("has-artwork","poster-grid-mode");
     wrap.style.backgroundImage = "";
+    wrap.setAttribute("role", "img");
     wrap.setAttribute("aria-label", title);
+    grid.hidden = true;
+    grid.replaceChildren();
     fallback.hidden = false;
     el("fallbackTitle").textContent = title;
+  }
+
+  async function renderPosterGrid(q){
+    const wrap = el("artworkWrap"), fallback = el("artworkFallback"), grid = el("posterGrid");
+    wrap.classList.remove("has-artwork");
+    wrap.classList.add("poster-grid-mode");
+    wrap.style.backgroundImage = "";
+    wrap.removeAttribute("role");
+    wrap.setAttribute("aria-label", "Movie choices");
+    fallback.hidden = true;
+    grid.hidden = false;
+    grid.replaceChildren();
+
+    q.answerMovies.forEach((choice, i) => {
+      const button = document.createElement("button");
+      button.type = "button";
+      button.className = "poster-choice";
+      button.dataset.answerIndex = String(i);
+      button.setAttribute("aria-label", choice.title + (choice.year ? ` (${choice.year})` : ""));
+      button.addEventListener("click", () => choose(i, button));
+
+      const label = document.createElement("span");
+      label.className = "poster-choice-title";
+      label.textContent = choice.title;
+      button.appendChild(label);
+      grid.appendChild(button);
+
+      getMedia({tmdb:choice}).then(media => {
+        if(questions[index] !== q || !media?.poster) return;
+        const preload = new Image();
+        preload.onload = () => {
+          if(questions[index] !== q) return;
+          button.style.backgroundImage = `url("${media.poster.replace(/"/g, "%22")}")`;
+          button.classList.add("loaded");
+        };
+        preload.src = media.poster;
+      }).catch(() => {});
+    });
   }
 
   async function loadMedia(q){
@@ -230,28 +271,36 @@
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
     el("pointsBadge").textContent = "+" + q.points.toLocaleString();
     el("questionText").textContent = q.question;
-    loadMedia(q);
 
     const answers = el("answers");
     answers.innerHTML = "";
-    q.answers.forEach((label, i) => {
-      const button = document.createElement("button");
-      button.type = "button";
-      button.className = "answer-button";
-      button.addEventListener("click", () => choose(i, button));
-      answers.appendChild(button);
 
-      const people = q.answerPeople?.[i];
-      if(Array.isArray(people) && people.length){
-        button.classList.add("person-answer");
-        addAnswerProfiles(button, people, label, q.personDepartment || "Acting");
-      } else {
-        const text = document.createElement("span");
-        text.className = "answer-label";
-        text.textContent = label;
-        button.appendChild(text);
-      }
-    });
+    if(Array.isArray(q.answerMovies) && q.answerMovies.length === q.answers.length){
+      answers.hidden = true;
+      renderPosterGrid(q);
+    } else {
+      answers.hidden = false;
+      loadMedia(q);
+      q.answers.forEach((label, i) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer-button";
+        button.dataset.answerIndex = String(i);
+        button.addEventListener("click", () => choose(i, button));
+        answers.appendChild(button);
+
+        const people = q.answerPeople?.[i];
+        if(Array.isArray(people) && people.length){
+          button.classList.add("person-answer");
+          addAnswerProfiles(button, people, label, q.personDepartment || "Acting");
+        } else {
+          const text = document.createElement("span");
+          text.className = "answer-label";
+          text.textContent = label;
+          button.appendChild(text);
+        }
+      });
+    }
 
     el("feedback").hidden = true;
     el("nextButton").hidden = true;
@@ -262,14 +311,17 @@
     card.classList.add("entering");
 
     const nextQuestion = questions[index + 1];
-    if(nextQuestion) getMedia(nextQuestion).catch(() => {});
+    if(nextQuestion?.tmdb) getMedia(nextQuestion).catch(() => {});
+    if(Array.isArray(nextQuestion?.answerMovies)){
+      nextQuestion.answerMovies.forEach(choice => getMedia({tmdb:choice}).catch(() => {}));
+    }
   }
 
   function choose(choice, button){
     if(locked) return;
     locked = true;
     const q = questions[index];
-    const buttons = [...el("answers").querySelectorAll("button")];
+    const buttons = [...document.querySelector(".question-card").querySelectorAll("[data-answer-index]")];
     buttons.forEach(b => b.disabled = true);
     const good = choice === q.correct;
     if(good){
@@ -283,9 +335,11 @@
       streak = 0;
       button.classList.add("wrong");
       markAnswer(button, "✕");
-      const correct = buttons[q.correct];
-      correct.classList.add("correct");
-      markAnswer(correct, "✓");
+      const correct = buttons.find(b => Number(b.dataset.answerIndex) === q.correct);
+      if(correct){
+        correct.classList.add("correct");
+        markAnswer(correct, "✓");
+      }
     }
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
