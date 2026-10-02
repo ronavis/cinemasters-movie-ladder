@@ -199,6 +199,22 @@ For `movie` rows:
 - `hero_movie` is not needed;
 - use a neutral `display_title` such as “Release Order” or “49th Academy Awards.”
 
+### Ordered release-timeline questions
+
+Movie Ladder automatically turns a four-poster movie question into an **ordered timeline interaction** when:
+
+- `genre` is exactly `Timeline` (case-insensitive);
+- all four answer movies have a year; and
+- all four years are different.
+
+Instead of choosing one answer, the player taps the posters from **earliest release to latest release**.
+
+The first selected poster gets a **1** badge, the next gets **2**, then **3**, then **4**. The answer is scored only after all four posters have been selected.
+
+If the sequence is wrong, Movie Ladder keeps the player's numbered order visible and shows the correct chronological order in the feedback.
+
+If two movies share the same year, Movie Ladder does **not** use order mode because a year-only timeline would be ambiguous. That row remains a normal four-poster multiple-choice question.
+
 ---
 
 # Do not give away the answer with artwork
