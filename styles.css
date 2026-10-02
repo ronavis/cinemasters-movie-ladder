@@ -239,3 +239,124 @@ h1{
   .toolbar-button{padding:9px 10px}
 }
 @media (prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;transition:none!important}}
+
+
+/* === Cinematic jazz pass === */
+.hero-art{
+  height:220px;
+  background:var(--green);
+}
+.hero-poster-rail{
+  position:absolute;
+  inset:0;
+  display:grid;
+  grid-template-columns:repeat(4,1fr);
+  gap:4px;
+  opacity:0;
+  transition:opacity .35s ease;
+}
+.hero-poster-rail.populated{opacity:1}
+.hero-poster-rail img{
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  filter:saturate(.9) brightness(.78);
+}
+.hero-overlay{
+  background:
+    linear-gradient(90deg,rgba(23,63,54,.86) 0%,rgba(23,63,54,.45) 44%,rgba(23,63,54,.12) 100%),
+    linear-gradient(to top,rgba(18,31,27,.72) 0%,rgba(18,31,27,0) 56%);
+}
+.hero-copy{z-index:2}
+.hero-copy h1{max-width:320px}
+.streak-label{
+  display:inline-block;
+  margin-top:6px;
+  padding:4px 7px;
+  border-radius:999px;
+  background:var(--yellow-soft);
+  color:#6a5720;
+  font-size:10px;
+  font-weight:950;
+  letter-spacing:.03em;
+}
+.streak-label[hidden]{display:none}
+.ladder-dots{
+  display:grid;
+  grid-template-columns:repeat(10,1fr);
+  gap:5px;
+  margin-top:10px;
+}
+.ladder-dot{
+  height:7px;
+  border-radius:999px;
+  background:#dedbd3;
+  transition:transform .22s ease,background .22s ease;
+}
+.ladder-dot.complete{background:var(--green)}
+.ladder-dot.current{
+  background:var(--orange);
+  transform:scaleY(1.45);
+}
+.artwork-wrap{height:290px}
+.movie-backdrop{
+  transform:scale(1.01);
+  transition:opacity .28s ease,transform .45s ease;
+}
+.movie-poster{
+  position:absolute;
+  left:16px;
+  bottom:14px;
+  width:72px;
+  aspect-ratio:2/3;
+  object-fit:cover;
+  z-index:2;
+  border-radius:8px;
+  border:3px solid rgba(255,255,255,.92);
+  box-shadow:0 8px 20px rgba(0,0,0,.22);
+  opacity:0;
+  transform:translateY(8px);
+  transition:opacity .25s ease,transform .25s ease;
+}
+.movie-poster.visible{
+  opacity:1;
+  transform:translateY(0);
+}
+.artwork-wrap.has-poster .movie-meta{left:102px}
+.question-card.entering{
+  animation:questionEnter .28s ease-out;
+}
+.score.bump{
+  animation:scoreBump .32s ease-out;
+}
+.answer-button.correct{animation:correctPop .28s ease-out}
+.answer-button.wrong{animation:wrongShake .28s ease-in-out}
+@keyframes questionEnter{
+  from{opacity:.55;transform:translateY(8px)}
+  to{opacity:1;transform:translateY(0)}
+}
+@keyframes scoreBump{
+  0%{transform:scale(1)}
+  45%{transform:scale(1.16);color:var(--orange)}
+  100%{transform:scale(1)}
+}
+@keyframes correctPop{
+  0%{transform:scale(1)}
+  55%{transform:scale(1.025)}
+  100%{transform:scale(1)}
+}
+@keyframes wrongShake{
+  0%,100%{transform:translateX(0)}
+  25%{transform:translateX(-5px)}
+  75%{transform:translateX(5px)}
+}
+@media (max-width:360px){
+  .hero-art{height:205px}
+  .artwork-wrap{height:255px}
+  .movie-poster{width:62px}
+  .artwork-wrap.has-poster .movie-meta{left:90px}
+}
+@media (prefers-reduced-motion:reduce){
+  .hero-poster-rail,.movie-backdrop,.movie-poster,.ladder-dot{transition:none!important}
+  .question-card.entering,.score.bump,.answer-button.correct,.answer-button.wrong{animation:none!important}
+}
