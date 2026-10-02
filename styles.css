@@ -722,3 +722,99 @@ h1{
   .poster-grid{gap:3px;padding:3px}
   .poster-choice-title{font-size:12px;left:6px;right:6px;bottom:6px}
 }
+
+
+/* === Admin trivia CSV import === */
+.csv-help{
+  margin:14px 0;
+  padding:12px 13px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  background:var(--yellow-soft);
+  color:#514b2d;
+  font-size:12px;
+  line-height:1.45;
+}
+.csv-help p{margin:5px 0 0!important;color:#635d3a!important}
+.csv-help code{
+  background:rgba(255,255,255,.6);
+  border-radius:5px;
+  padding:1px 4px;
+  font-size:11px;
+}
+.csv-template-link{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  min-height:46px;
+  text-decoration:none;
+  margin-bottom:14px;
+}
+.csv-import-form select{
+  width:100%;
+  min-height:50px;
+  border:1px solid #bfbab0;
+  border-radius:8px;
+  background:#fff;
+  color:var(--ink);
+  padding:11px 12px;
+  font-size:14px;
+}
+.csv-import-form input[type="file"]{
+  padding:9px;
+  background:#fff;
+}
+.csv-preview{
+  margin-top:14px;
+  border:1px solid var(--line);
+  border-radius:10px;
+  overflow:hidden;
+  background:#fff;
+}
+.csv-preview-heading{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:10px 12px;
+  background:var(--green-soft);
+}
+.csv-preview-scroll{overflow:auto;max-height:320px}
+.csv-preview table{
+  width:100%;
+  border-collapse:collapse;
+  font-size:12px;
+}
+.csv-preview th,
+.csv-preview td{
+  padding:8px 9px;
+  border-top:1px solid var(--line);
+  text-align:left;
+  vertical-align:top;
+}
+.csv-preview th{
+  position:sticky;
+  top:0;
+  background:#f6f4ef;
+  color:var(--muted);
+  font-size:10px;
+  text-transform:uppercase;
+  letter-spacing:.05em;
+  z-index:1;
+}
+.csv-preview td:first-child{font-weight:900;color:var(--green-dark)}
+.csv-preview td:nth-child(2){text-transform:capitalize}
+.settings-actions .primary-button{
+  width:auto;
+}
+#triviaClearButton:disabled,
+#triviaValidateButton:disabled,
+#triviaImportButton:disabled{
+  opacity:.5;
+  cursor:default;
+}
+@media (max-width:420px){
+  .csv-preview table{min-width:520px}
+  .settings-actions{grid-template-columns:1fr}
+  .settings-actions .primary-button{width:100%}
+}
