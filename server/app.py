@@ -137,7 +137,7 @@ def create_app(config=None):
             response.headers["Access-Control-Allow-Origin"] = origin
             response.headers["Vary"] = "Origin"
             response.headers["Access-Control-Allow-Headers"] = "Authorization, Content-Type"
-            response.headers["Access-Control-Allow-Methods"] = "GET, PUT, DELETE, OPTIONS"
+            response.headers["Access-Control-Allow-Methods"] = "GET, POST, PUT, DELETE, OPTIONS"
         if request.path.startswith("/api/"):
             response.headers["Cache-Control"] = "no-store"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -200,7 +200,6 @@ def create_app(config=None):
         return jsonify(
             configured=configured,
             lastVerifiedAt=settings.get("tmdb_verified_at"),
-            account=settings.get("tmdb_account"),
         )
 
     @app.put("/api/admin/tmdb")
@@ -211,19 +210,15 @@ def create_app(config=None):
         if len(token) < 20 or len(token) > 4096 or any(ch.isspace() for ch in token):
             abort(400, "Enter a valid TMDb API Read Access Token.")
 
-        account = tmdb_request("/account", token=token)
+        tmdb_request("/configuration", token=token)
         payload = read_settings()
         payload["tmdb_token"] = token
         payload["tmdb_verified_at"] = int(time.time())
-        payload["tmdb_account"] = {
-            "id": account.get("id"),
-            "username": account.get("username") or account.get("name") or "TMDb account",
-        }
+        payload.pop("tmdb_account", None)
         write_settings(payload)
         return jsonify(
             configured=True,
             lastVerifiedAt=payload["tmdb_verified_at"],
-            account=payload["tmdb_account"],
         )
 
     @app.delete("/api/admin/tmdb")
@@ -239,15 +234,12 @@ def create_app(config=None):
     @app.post("/api/admin/tmdb/test")
     @authenticated(admin=True)
     def test_tmdb():
-        account = tmdb_request("/account")
+        tmdb_request("/configuration")
         payload = read_settings()
         payload["tmdb_verified_at"] = int(time.time())
-        payload["tmdb_account"] = {
-            "id": account.get("id"),
-            "username": account.get("username") or account.get("name") or "TMDb account",
-        }
+        payload.pop("tmdb_account", None)
         write_settings(payload)
-        return jsonify(ok=True, lastVerifiedAt=payload["tmdb_verified_at"], account=payload["tmdb_account"])
+        return jsonify(ok=True, lastVerifiedAt=payload["tmdb_verified_at"])
 
     @app.get("/api/tmdb/movie/<int:movie_id>")
     def movie(movie_id):
@@ -287,8 +279,5 @@ def create_app(config=None):
     return app
 
 
-app = create_app() if __name__ != "__main__" else None
-
 if __name__ == "__main__":
-    app = create_app()
-    app.run(host="127.0.0.1", port=int(os.environ.get("PORT", "8092")))
+    create_app().run(host="127.0.0.1", port=int(os.environ.get("PORT", "8092")))
