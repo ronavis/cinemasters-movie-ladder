@@ -595,3 +595,32 @@ h1{
   }
   .movie-line h2{font-size:20px}
 }
+
+
+/* === Final portrait poster surface === */
+.game-stage .artwork-wrap{
+  width:100%;
+  height:auto;
+  aspect-ratio:2/3;
+  background-color:var(--green-dark);
+  background-repeat:no-repeat;
+  background-position:center center;
+  background-size:cover;
+  overflow:hidden;
+}
+.artwork-wrap .movie-backdrop{
+  display:none!important;
+}
+.artwork-fallback{
+  position:absolute;
+  inset:0;
+}
+.answer-button.person-answer{
+  min-height:58px;
+}
+@media (max-width:360px){
+  .game-stage .artwork-wrap{
+    height:auto;
+    aspect-ratio:2/3;
+  }
+}
