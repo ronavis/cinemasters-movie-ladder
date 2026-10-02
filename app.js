@@ -104,6 +104,7 @@
 
   function setArtworkFallback(title){
     const wrap = el("artworkWrap"), fallback = el("artworkFallback");
+    wrap.classList.remove("has-artwork");
     wrap.style.backgroundImage = "";
     wrap.setAttribute("aria-label", title);
     fallback.hidden = false;
@@ -120,9 +121,18 @@
       if(!image) return;
 
       const wrap = el("artworkWrap"), fallback = el("artworkFallback");
-      wrap.style.backgroundImage = `url("${image.replace(/"/g, "%22")}")`;
-      wrap.setAttribute("aria-label", (media.title || q.movie) + " movie poster");
-      fallback.hidden = true;
+      const preload = new Image();
+
+      preload.onload = () => {
+        if(index >= questions.length || questions[index] !== q) return;
+        wrap.style.backgroundImage = `url("${image.replace(/"/g, "%22")}")`;
+        wrap.setAttribute("aria-label", (media.title || q.movie) + " movie poster");
+        wrap.classList.add("has-artwork");
+        fallback.hidden = true;
+      };
+
+      preload.onerror = () => setArtworkFallback(q.movie);
+      preload.src = image;
     } catch (_) {
       setArtworkFallback(q.movie);
     }
