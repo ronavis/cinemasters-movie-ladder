@@ -179,6 +179,10 @@ Example:
 
 This works like an actor question, except TMDb person lookup prefers the **Directing** department.
 
+If TMDb does not provide a usable director-profile image, Movie Ladder tries the same person's **Acting** profile as a photo fallback. This is useful for filmmaker-performers such as Jordan Peele or Greta Gerwig.
+
+The fallback changes only the image lookup. The answer remains a director answer, and Movie Ladder requires the returned acting-profile name to match the requested person before using the photo.
+
 ---
 
 ## 4. `movie`
