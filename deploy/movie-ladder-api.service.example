@@ -1,0 +1,19 @@
+[Unit]
+Description=Cinemasters Movie Ladder API
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=movie-ladder
+Group=movie-ladder
+WorkingDirectory=/opt/cinemasters-movie-ladder
+EnvironmentFile=/etc/cinemasters-movie-ladder.env
+ExecStart=/opt/cinemasters-movie-ladder/.venv/bin/gunicorn -w 2 -b 127.0.0.1:8092 'server.app:create_app()'
+Restart=on-failure
+RestartSec=3
+PrivateTmp=true
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target
