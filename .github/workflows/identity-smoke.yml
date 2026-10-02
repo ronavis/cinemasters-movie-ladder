@@ -31,15 +31,7 @@ jobs:
         run: |
           set -euo pipefail
           curl -fsS 'https://midconversation.com/arcade-api/movie-ladder/tmdb/search?title=Jaws&year=1975' | tee /tmp/jaws.json
-          POSTER="$(python3 - <<'PY'
-import json
-data=json.load(open('/tmp/jaws.json'))
-poster=data.get('poster')
-if not poster:
-    raise SystemExit('No poster URL returned')
-print(poster)
-PY
-)"
+          POSTER="$(python3 -c "import json; p=json.load(open('/tmp/jaws.json')).get('poster'); assert p, 'No poster URL returned'; print(p)")"
           echo "Poster URL: $POSTER"
           curl -fsS --max-time 20 -o /tmp/jaws-poster.jpg "$POSTER"
           test -s /tmp/jaws-poster.jpg
@@ -48,15 +40,7 @@ PY
         run: |
           set -euo pipefail
           curl -fsS 'https://midconversation.com/arcade-api/movie-ladder/tmdb/person?name=Harrison%20Ford' | tee /tmp/person.json
-          PROFILE="$(python3 - <<'PY'
-import json
-data=json.load(open('/tmp/person.json'))
-profile=data.get('profile')
-if not profile:
-    raise SystemExit('No profile URL returned')
-print(profile)
-PY
-)"
+          PROFILE="$(python3 -c "import json; p=json.load(open('/tmp/person.json')).get('profile'); assert p, 'No profile URL returned'; print(p)")"
           echo "Profile URL: $PROFILE"
           curl -fsS --max-time 20 -o /tmp/harrison.jpg "$PROFILE"
           test -s /tmp/harrison.jpg
