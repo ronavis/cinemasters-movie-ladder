@@ -144,6 +144,56 @@
           <p id="tmdbMessage" class="settings-message" role="status" aria-live="polite"></p>
         </section>
 
+        <section class="settings-section" aria-labelledby="triviaImportTitle">
+          <div class="settings-row">
+            <div>
+              <h3 id="triviaImportTitle">Trivia question bank</h3>
+              <p>Import questions from a CSV. Each row belongs to one ladder rung, and Movie Ladder can choose among the built-in and imported questions for that rung.</p>
+            </div>
+            <div id="questionBankCount" class="status-pill">0 imported</div>
+          </div>
+
+          <div class="csv-help">
+            <strong>CSV basics</strong>
+            <p><code>answer_type</code>: text, actor, director, or movie. <code>correct</code>: 1–4. For movie choices, fill the optional answer-year columns so TMDB finds the right posters. For text/actor/director questions, <code>hero_movie</code> supplies the big poster.</p>
+          </div>
+
+          <a class="secondary-button csv-template-link" href="data/trivia-template.csv" download="movie-ladder-trivia-template.csv">Download blank CSV template</a>
+
+          <div class="settings-form csv-import-form">
+            <label for="triviaCsvFile">Trivia CSV</label>
+            <input id="triviaCsvFile" type="file" accept=".csv,text/csv">
+            <label for="triviaImportMode">When importing</label>
+            <select id="triviaImportMode">
+              <option value="append">Add new questions; skip duplicates</option>
+              <option value="replace">Replace all previously imported questions</option>
+            </select>
+          </div>
+
+          <div class="settings-actions">
+            <button id="triviaValidateButton" class="secondary-button" type="button" disabled>Validate &amp; preview</button>
+            <button id="triviaImportButton" class="primary-button" type="button" disabled>Import questions</button>
+          </div>
+
+          <div id="triviaPreview" class="csv-preview" hidden>
+            <div class="csv-preview-heading">
+              <strong id="triviaPreviewSummary">CSV preview</strong>
+              <span id="triviaPreviewNote" class="small-copy"></span>
+            </div>
+            <div class="csv-preview-scroll">
+              <table>
+                <thead>
+                  <tr><th>Rung</th><th>Type</th><th>Question</th><th>Correct</th></tr>
+                </thead>
+                <tbody id="triviaPreviewRows"></tbody>
+              </table>
+            </div>
+          </div>
+
+          <p id="triviaImportMessage" class="settings-message" role="status" aria-live="polite"></p>
+          <button id="triviaClearButton" class="danger-button full-width" type="button" disabled>Clear imported questions</button>
+        </section>
+
         <section class="settings-section">
           <h3>Admin authority</h3>
           <p id="adminIdentity">Signed-in administrator</p>
