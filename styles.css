@@ -1392,3 +1392,48 @@ h1{
     padding-right:50px;
   }
 }
+
+
+/* === Stronger score + question value hierarchy === */
+.game-hud .score{
+  margin-top:2px;
+  color:var(--green-dark);
+  font-size:16px;
+  line-height:1;
+  font-weight:1000;
+  letter-spacing:-.02em;
+}
+.game-hud .tickets{
+  font-size:13px;
+}
+.movie-line{
+  justify-content:flex-end;
+  margin-bottom:8px;
+}
+.points-inline{
+  display:inline-flex;
+  align-items:center;
+  min-height:32px;
+  padding:6px 11px;
+  border:1px solid #d2b837;
+  border-radius:999px;
+  background:var(--yellow);
+  color:#3d3614;
+  font-size:13px;
+  line-height:1;
+  font-weight:1000;
+  box-shadow:0 2px 0 rgba(166,137,26,.22);
+}
+.score.bump{
+  animation:scoreBump .32s ease-out;
+}
+@media (max-width:390px){
+  .game-hud .score{
+    font-size:15px;
+  }
+  .points-inline{
+    min-height:30px;
+    padding:5px 10px;
+    font-size:12px;
+  }
+}
