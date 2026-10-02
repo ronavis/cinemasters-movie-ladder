@@ -96,19 +96,21 @@
   }
 
   async function loadMedia(q){
-    setArtworkFallback(q.movie, "TMDB artwork");
+    setArtworkFallback(q.movie, q?.tmdb ? "TMDB" : "");
+    el("artworkBadge").hidden = !q?.tmdb;
+    if(!q?.tmdb) return;
     try {
       const media = await getMedia(q);
       if(!media || index >= questions.length || questions[index] !== q) return;
       const image = media.backdrop || media.poster;
-      if(!image){ el("artworkBadge").textContent = "TMDB • no artwork"; return; }
+      if(!image){ el("artworkBadge").textContent = "TMDB"; return; }
 
       const img = el("movieArtwork"), poster = el("moviePoster"), fallback = el("artworkFallback"), wrap = document.querySelector(".artwork-wrap");
       img.onload = () => {
         if(questions[index] !== q) return;
         img.hidden = false;
         fallback.hidden = true;
-        el("artworkBadge").textContent = "Artwork via TMDB";
+        el("artworkBadge").textContent = "TMDB";
       };
       img.onerror = () => setArtworkFallback(q.movie, "TMDB artwork unavailable");
       img.src = image;
