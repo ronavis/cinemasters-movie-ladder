@@ -361,3 +361,100 @@ h1{
   .hero-poster-rail,.movie-backdrop,.movie-poster,.ladder-dot{transition:none!important}
   .question-card.entering,.score.bump,.answer-button.correct,.answer-button.wrong{animation:none!important}
 }
+
+
+/* === Cohesive gameplay stage === */
+.game-stage{
+  background:var(--panel);
+  border:1px solid var(--line);
+  border-radius:22px;
+  overflow:hidden;
+  box-shadow:var(--shadow);
+}
+.game-stage .game-header{
+  padding:16px 18px 10px;
+  background:var(--paper);
+  border-bottom:0;
+}
+.game-stage .progress-card{
+  margin:0;
+  padding:0 18px 16px;
+  border:0;
+  border-radius:0;
+  background:var(--paper);
+  box-shadow:none;
+}
+.game-stage .progress-track{display:none}
+.game-stage .ladder-dots{margin-top:8px}
+.game-stage .question-card{
+  border:0;
+  border-top:1px solid var(--line);
+  border-radius:0;
+  box-shadow:none;
+}
+.game-stage .artwork-wrap{
+  height:300px;
+  border-bottom:1px solid rgba(23,63,54,.08);
+}
+.artwork-wrap .movie-backdrop{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  object-position:center 40%;
+}
+.artwork-wrap .movie-poster{
+  position:absolute;
+  left:18px;
+  bottom:18px;
+  width:70px;
+  height:105px;
+  max-width:none;
+  object-fit:cover;
+  z-index:3;
+  border-radius:8px;
+  border:3px solid rgba(255,255,255,.94);
+  box-shadow:0 8px 20px rgba(0,0,0,.24);
+}
+.artwork-wrap.has-poster .movie-meta{left:104px}
+.artwork-badge{
+  left:auto;
+  right:14px;
+  top:14px;
+  padding:5px 8px;
+  border-radius:999px;
+  background:rgba(255,255,255,.9);
+  color:var(--green-dark);
+  font-size:9px;
+  letter-spacing:.04em;
+}
+.question-body{padding:18px}
+.answer-button{
+  border-left:5px solid var(--green)!important;
+  background:#fffdf9;
+  transition:background .18s ease,border-color .18s ease,transform .18s ease;
+}
+.answer-button:hover:not(:disabled){
+  background:#f5f8f5;
+  border-color:#b8c7c0;
+  transform:translateY(-1px);
+}
+.answer-button.correct{
+  border-left-color:var(--good)!important;
+  background:#edf8f2;
+}
+.answer-button.wrong{
+  border-left-color:var(--bad)!important;
+  background:#fff2f3;
+}
+.chip{
+  border-radius:999px;
+}
+@media (max-width:360px){
+  .game-stage .game-header{padding:14px 14px 9px}
+  .game-stage .progress-card{padding:0 14px 14px}
+  .game-stage .artwork-wrap{height:260px}
+  .artwork-wrap .movie-poster{width:62px;height:93px;left:14px;bottom:14px}
+  .artwork-wrap.has-poster .movie-meta{left:88px}
+}
