@@ -26,3 +26,37 @@ jobs:
           set -euo pipefail
           curl -fsSI -H 'Origin: https://ronavis.github.io' https://midconversation.com/arcade-api/health | tee /tmp/headers.txt
           grep -qi '^access-control-allow-origin: https://ronavis.github.io' /tmp/headers.txt
+
+      - name: Check live TMDb poster
+        run: |
+          set -euo pipefail
+          curl -fsS 'https://midconversation.com/arcade-api/movie-ladder/tmdb/search?title=Jaws&year=1975' | tee /tmp/jaws.json
+          POSTER="$(python3 - <<'PY'
+import json
+data=json.load(open('/tmp/jaws.json'))
+poster=data.get('poster')
+if not poster:
+    raise SystemExit('No poster URL returned')
+print(poster)
+PY
+)"
+          echo "Poster URL: $POSTER"
+          curl -fsS --max-time 20 -o /tmp/jaws-poster.jpg "$POSTER"
+          test -s /tmp/jaws-poster.jpg
+
+      - name: Check live actor profile
+        run: |
+          set -euo pipefail
+          curl -fsS 'https://midconversation.com/arcade-api/movie-ladder/tmdb/person?name=Harrison%20Ford' | tee /tmp/person.json
+          PROFILE="$(python3 - <<'PY'
+import json
+data=json.load(open('/tmp/person.json'))
+profile=data.get('profile')
+if not profile:
+    raise SystemExit('No profile URL returned')
+print(profile)
+PY
+)"
+          echo "Profile URL: $PROFILE"
+          curl -fsS --max-time 20 -o /tmp/harrison.jpg "$PROFILE"
+          test -s /tmp/harrison.jpg
