@@ -1437,3 +1437,23 @@ h1{
     font-size:12px;
   }
 }
+
+
+/* === Cleaner poster choices + centered question value === */
+/* Poster titles are fallback-only. Real TMDb artwork gets the full clean tile. */
+.poster-choice.loaded .poster-choice-title{
+  display:none!important;
+}
+.poster-choice.loaded::after{
+  display:none!important;
+}
+
+/* Center the question value directly beneath the poster/grid. */
+.movie-line{
+  justify-content:center!important;
+  text-align:center;
+}
+.points-inline{
+  margin-left:auto;
+  margin-right:auto;
+}
