@@ -523,6 +523,22 @@
     }
   }
 
+  async function getAnswerProfile(name, department="Acting"){
+    const primary = await getPerson(name, department);
+    if(primary?.profile) return primary;
+
+    if(department === "Directing"){
+      const acting = await getPerson(name, "Acting");
+      const requestedName = String(name || "").trim().toLocaleLowerCase();
+      const returnedName = String(acting?.name || "").trim().toLocaleLowerCase();
+      if(acting?.profile && requestedName && requestedName === returnedName){
+        return acting;
+      }
+    }
+
+    return primary;
+  }
+
   async function addAnswerProfiles(button, names, label, department="Acting"){
     const profiles = document.createElement("span");
     profiles.className = "answer-profiles";
@@ -531,7 +547,7 @@
     text.textContent = label;
     button.append(profiles, text);
 
-    const people = await Promise.all(names.map(name => getPerson(name, department)));
+    const people = await Promise.all(names.map(name => getAnswerProfile(name, department)));
     people.filter(person => person?.profile).forEach(person => {
       const img = document.createElement("img");
       img.className = "answer-avatar";
