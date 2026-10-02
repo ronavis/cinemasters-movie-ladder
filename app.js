@@ -306,13 +306,21 @@
     return run;
   }
 
+  function questionFitsDifficulty(question){
+    const rung = Number(question?.rung) || 0;
+    if(rung >= 10) return true;
+    const text = String(question?.question || "").toLowerCase();
+    return !/\b(cinematograph(?:er|y)|editor|edited)\b/.test(text);
+  }
+
   async function loadQuestionBank(){
     try {
       const payload = await api("/movie-ladder/questions");
-      const imported = Array.isArray(payload.questions)
+      const importedAll = Array.isArray(payload.questions)
         ? payload.questions.filter(question => Number(question.rung) >= 1 && Number(question.rung) <= 10)
         : [];
-      state.importedQuestionCount = imported.length;
+      const imported = importedAll.filter(questionFitsDifficulty);
+      state.importedQuestionCount = importedAll.length;
       questionPool = [...builtInQuestions, ...imported];
       if(welcome.classList.contains("active")){
         questions = buildRunQuestions();
