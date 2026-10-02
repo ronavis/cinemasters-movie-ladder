@@ -1,6 +1,10 @@
 (() => {
   const builtInQuestions = (Array.isArray(window.CINEMASTERS_QUESTIONS) ? window.CINEMASTERS_QUESTIONS : [])
-    .map((question, i) => ({...question, rung:Number(question.rung) || i + 1}));
+    .map((question, i) => ({
+      ...question,
+      id:question.id || `builtin-rung-${Number(question.rung) || i + 1}-${i + 1}`,
+      rung:Number(question.rung) || i + 1
+    }));
   let questionPool = [...builtInQuestions];
   let questions = [...builtInQuestions];
   const config = window.MOVIE_LADDER_CONFIG || {};
@@ -92,6 +96,7 @@
   }
 
   const RUNS_KEY = "movie_ladder_runs_v1";
+  const QUESTION_HISTORY_KEY = "movie_ladder_question_history_v1";
 
   const outcomeArt = {
     "Moviegoer": `<svg viewBox="0 0 240 180" role="img" aria-label="Moviegoer ticket badge"><rect x="24" y="42" width="192" height="96" rx="18" fill="#f1d34f"/><circle cx="24" cy="90" r="13" fill="#fffdf8"/><circle cx="216" cy="90" r="13" fill="#fffdf8"/><path d="M78 67h84v46H78z" fill="#245f50"/><path d="M94 78h52v24H94z" fill="#fffdf8"/><circle cx="106" cy="90" r="5" fill="#ef6a2f"/><circle cx="134" cy="90" r="5" fill="#ef6a2f"/></svg>`,
@@ -294,15 +299,63 @@
     el("runsDialog").showModal();
   }
 
+  function questionKey(question){
+    if(question?.id) return String(question.id);
+    const answers = Array.isArray(question?.answers) ? question.answers.join("|") : "";
+    return [question?.rung || "", question?.question || "", answers].join("::");
+  }
+
+  function loadQuestionHistory(){
+    try {
+      const history = JSON.parse(localStorage.getItem(QUESTION_HISTORY_KEY) || "{}");
+      return history && typeof history === "object" && !Array.isArray(history) ? history : {};
+    } catch (_) {
+      return {};
+    }
+  }
+
+  function saveQuestionHistory(history){
+    try { localStorage.setItem(QUESTION_HISTORY_KEY, JSON.stringify(history)); } catch (_) {}
+  }
+
+  function randomChoice(items){
+    return items[Math.floor(Math.random() * items.length)];
+  }
+
   function buildRunQuestions(){
     const run = [];
+    const history = loadQuestionHistory();
+
     for(let rung = 1; rung <= 10; rung++){
       const candidates = questionPool.filter(question => Number(question.rung) === rung);
       const fallback = builtInQuestions.find(question => Number(question.rung) === rung);
       const choices = candidates.length ? candidates : (fallback ? [fallback] : []);
       if(!choices.length) continue;
-      run.push(choices[Math.floor(Math.random() * choices.length)]);
+
+      const byKey = new Map(choices.map(question => [questionKey(question), question]));
+      const validKeys = new Set(byKey.keys());
+      let recent = Array.isArray(history[rung])
+        ? history[rung].filter(key => validKeys.has(key))
+        : [];
+
+      // Keep only the most recent unique appearances.
+      recent = recent.filter((key, i) => recent.lastIndexOf(key) === i);
+      const keep = Math.max(0, choices.length - 1);
+      if(recent.length > keep) recent = recent.slice(-keep);
+
+      let available = choices.filter(question => !recent.includes(questionKey(question)));
+      if(!available.length) available = choices;
+
+      const selected = randomChoice(available);
+      const selectedKey = questionKey(selected);
+      recent.push(selectedKey);
+      if(recent.length > keep) recent = recent.slice(-keep);
+
+      history[rung] = recent;
+      run.push(selected);
     }
+
+    saveQuestionHistory(history);
     return run;
   }
 
@@ -554,6 +607,25 @@
     });
   }
 
+  function prefersReducedMotion(){
+    return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+  }
+
+  function scrollIntoGameView(target, block="center"){
+    if(!target?.scrollIntoView) return;
+    requestAnimationFrame(() => {
+      target.scrollIntoView({
+        behavior:prefersReducedMotion() ? "auto" : "smooth",
+        block
+      });
+    });
+  }
+
+  function revealAnswerResult(){
+    const next = el("nextButton");
+    scrollIntoGameView(next, "center");
+  }
+
   function renderStreak(){
     const label = el("streakLabel");
     label.hidden = streak < 2;
@@ -581,7 +653,7 @@
     renderStreak();
     el("movieTitle").textContent = q.movie;
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
-    el("pointsBadge").textContent = "+" + q.points.toLocaleString();
+    el("pointsBadge").textContent = "Worth " + q.points.toLocaleString() + " pts";
     const orderMode = isMovieOrderQuestion(q);
     el("questionText").textContent = orderMode
       ? "Tap the movies in release order, earliest to latest."
@@ -687,6 +759,7 @@
     const next = el("nextButton");
     next.textContent = lives === 0 ? "See my run" : index === questions.length - 1 ? "Claim Cinemaster status" : "Next rung →";
     next.hidden = false;
+    revealAnswerResult();
   }
 
   function choose(choice, button){
@@ -725,6 +798,7 @@
     const next = el("nextButton");
     next.textContent = lives === 0 ? "See my run" : index === questions.length - 1 ? "Claim Cinemaster status" : "Next rung →";
     next.hidden = false;
+    revealAnswerResult();
   }
 
   async function finish(won){
@@ -1041,7 +1115,9 @@
   el("nextButton").addEventListener("click", () => {
     if(lives === 0){ finish(false); return; }
     if(index === questions.length - 1){ finish(true); return; }
-    index++; render();
+    index++;
+    render();
+    scrollIntoGameView(document.querySelector(".game-hud"), "start");
   });
   el("replayButton").addEventListener("click", () => {
     questions = buildRunQuestions();
