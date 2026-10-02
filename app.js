@@ -30,10 +30,17 @@
   async function api(path, options = {}){
     const headers = new Headers(options.headers || {});
     if(state.token) headers.set("Authorization", "Bearer " + state.token);
-    const response = await fetch(apiUrl(path), {...options, headers});
+    let response;
+    try {
+      response = await fetch(apiUrl(path), {...options, headers});
+    } catch (_) {
+      const error = new Error("The Movie Ladder account service is not online yet. You can still play normally.");
+      error.code = "SERVICE_OFFLINE";
+      throw error;
+    }
     let payload = {};
     try { payload = await response.json(); } catch (_) {}
-    if(!response.ok) throw new Error(payload.error || "Movie Ladder API request failed.");
+    if(!response.ok) throw new Error(payload.error || "Movie Ladder account service returned an error.");
     return payload;
   }
 
@@ -214,7 +221,10 @@
       google.accounts.id.renderButton(el("googleButton"), {theme:"outline",size:"large",text:"signin_with",width:280});
       el("loginHelp").textContent = "Google verifies identity; the game never receives your Google password.";
     } catch(error){
-      el("loginHelp").textContent = error.message;
+      el("loginHelp").textContent = error.code === "SERVICE_OFFLINE"
+        ? "Google sign-in is being wired up on the VPS. You can keep playing without an account for now."
+        : error.message;
+      el("loginHelp").classList.toggle("service-offline", error.code === "SERVICE_OFFLINE");
     }
   }
 
