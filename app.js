@@ -14,6 +14,7 @@
   let index = 0, lives = 3, score = 0, streak = 0, maxStreak = 0;
   let correctCount = 0, wrongCount = 0, locked = false, runRecorded = false;
   let currentRunId = "";
+  let orderSelections = [];
   let previousScreen = welcome;
   let googlePromise = null;
   let tmdbFetchEnabled = true;
@@ -169,6 +170,7 @@
     locked = false;
     runRecorded = false;
     currentRunId = newRunId();
+    orderSelections = [];
   }
 
   async function syncLocalRunsToAccount(){
@@ -367,6 +369,21 @@
     el("fallbackTitle").textContent = title;
   }
 
+  function isMovieOrderQuestion(q){
+    if(!Array.isArray(q?.answerMovies) || q.answerMovies.length !== 4) return false;
+    if(String(q.genre || "").trim().toLowerCase() !== "timeline") return false;
+    const years = q.answerMovies.map(choice => Number(choice.year));
+    return years.every(year => Number.isInteger(year) && year >= 1880 && year <= 2200)
+      && new Set(years).size === years.length;
+  }
+
+  function movieOrderIndexes(q){
+    return q.answerMovies
+      .map((choice, i) => ({i, year:Number(choice.year)}))
+      .sort((a,b) => a.year - b.year)
+      .map(item => item.i);
+  }
+
   async function renderPosterGrid(q){
     const wrap = el("artworkWrap"), fallback = el("artworkFallback"), grid = el("posterGrid");
     wrap.classList.remove("has-artwork");
@@ -377,6 +394,9 @@
     fallback.hidden = true;
     grid.hidden = false;
     grid.replaceChildren();
+    const orderMode = isMovieOrderQuestion(q);
+    grid.classList.toggle("order-grid", orderMode);
+    orderSelections = [];
 
     q.answerMovies.forEach((choice, i) => {
       const button = document.createElement("button");
@@ -384,7 +404,7 @@
       button.className = "poster-choice";
       button.dataset.answerIndex = String(i);
       button.setAttribute("aria-label", choice.title + (choice.year ? ` (${choice.year})` : ""));
-      button.addEventListener("click", () => choose(i, button));
+      button.addEventListener("click", () => orderMode ? chooseMovieOrder(i, button, q) : choose(i, button));
 
       const label = document.createElement("span");
       label.className = "poster-choice-title";
@@ -523,7 +543,10 @@
     el("movieTitle").textContent = q.movie;
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
     el("pointsBadge").textContent = "+" + q.points.toLocaleString();
-    el("questionText").textContent = q.question;
+    const orderMode = isMovieOrderQuestion(q);
+    el("questionText").textContent = orderMode
+      ? "Tap the movies in release order, earliest to latest."
+      : q.question;
 
     const answers = el("answers");
     answers.innerHTML = "";
@@ -568,6 +591,63 @@
     if(Array.isArray(nextQuestion?.answerMovies)){
       nextQuestion.answerMovies.forEach(choice => getMedia({tmdb:choice}).catch(() => {}));
     }
+  }
+
+  function chooseMovieOrder(choice, button, q){
+    if(locked || button.disabled) return;
+
+    orderSelections.push(choice);
+    const position = orderSelections.length;
+    button.disabled = true;
+    button.classList.add("order-selected");
+
+    const badge = document.createElement("span");
+    badge.className = "order-badge";
+    badge.textContent = String(position);
+    button.appendChild(badge);
+
+    const title = q.answerMovies[choice]?.title || q.answers[choice] || "movie";
+    button.setAttribute("aria-label", `${title}, selected position ${position} of 4`);
+
+    if(orderSelections.length < 4) return;
+
+    locked = true;
+    const buttons = [...el("posterGrid").querySelectorAll("[data-answer-index]")];
+    buttons.forEach(item => { item.disabled = true; });
+
+    const expected = movieOrderIndexes(q);
+    const good = orderSelections.every((value, i) => value === expected[i]);
+
+    if(good){
+      score += q.points;
+      streak++;
+      correctCount++;
+      maxStreak = Math.max(maxStreak, streak);
+      el("posterGrid").classList.add("order-correct");
+      buttons.forEach(item => item.classList.add("correct"));
+      animateScore();
+    } else {
+      lives--;
+      wrongCount++;
+      streak = 0;
+      el("posterGrid").classList.add("order-wrong");
+    }
+
+    const correctOrder = expected
+      .map(i => `${q.answerMovies[i].title} (${q.answerMovies[i].year})`)
+      .join(" → ");
+
+    el("scoreLabel").textContent = score.toLocaleString() + " pts";
+    el("ticketsLabel").textContent = lives > 0 ? "🎟️ ".repeat(lives).trim() : "No tickets";
+    renderStreak();
+
+    el("feedback").textContent = (good ? "Correct — climb! " : "Ticket lost. ")
+      + "Correct order: " + correctOrder + ".";
+    el("feedback").hidden = false;
+
+    const next = el("nextButton");
+    next.textContent = lives === 0 ? "See my run" : index === questions.length - 1 ? "Claim Cinemaster status" : "Next rung →";
+    next.hidden = false;
   }
 
   function choose(choice, button){
