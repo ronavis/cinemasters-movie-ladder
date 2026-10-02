@@ -237,7 +237,7 @@
       pill.textContent = "Not connected";
       pill.classList.add("bad");
     }
-    el("tmdbAccountLabel").textContent = status.account?.username ? "TMDB account: " + status.account.username : "";
+    el("tmdbAccountLabel").textContent = status.configured ? "TMDB API Read Access Token is stored only on the VPS." : "";
     el("tmdbVerifiedLabel").textContent = status.lastVerifiedAt ? "Last verified: " + formatVerified(status.lastVerifiedAt) : "";
     el("tmdbTestButton").disabled = !status.configured;
     el("tmdbDisconnectButton").disabled = !status.configured;
