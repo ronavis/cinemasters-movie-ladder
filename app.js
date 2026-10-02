@@ -90,6 +90,10 @@
     try {
       const params = new URLSearchParams({name, department});
       const person = await api("/movie-ladder/tmdb/person?" + params.toString());
+      if(department === "Directing" && person?.department !== "Directing"){
+        personCache.set(key, null);
+        return null;
+      }
       personCache.set(key, person);
       return person;
     } catch (_) {
