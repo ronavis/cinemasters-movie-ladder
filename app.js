@@ -243,18 +243,32 @@
 
   async function openRuns(){
     const localRuns = loadLocalRuns();
-    let serverRuns = [];
+    let serverRecent = [];
+    let serverBest = [];
+    let serverSummary = null;
+
     if(state.user){
       try {
+        await syncLocalRunsToAccount();
         const payload = await api("/movie-ladder/runs?limit=30");
-        serverRuns = Array.isArray(payload.recent) ? payload.recent : [];
+        serverRecent = Array.isArray(payload.recent) ? payload.recent : [];
+        serverBest = Array.isArray(payload.best) ? payload.best : [];
+        serverSummary = payload.summary || null;
       } catch (_) {}
     }
 
-    const runs = mergeRuns(localRuns, serverRuns);
+    const runs = mergeRuns(localRuns, serverRecent, serverBest);
     const recent = [...runs].sort((a,b) => (Number(b.createdAt)||0) - (Number(a.createdAt)||0)).slice(0,20);
     const best = sortBestRuns(runs).slice(0,5);
-    const summary = summarizeRuns(runs);
+    const localSummary = summarizeRuns(runs);
+    const summary = state.user && serverSummary
+      ? {
+          totalRuns:Number(serverSummary.totalRuns)||0,
+          bestScore:Math.max(Number(serverSummary.bestScore)||0, localSummary.bestScore),
+          highestRung:Math.max(Number(serverSummary.highestRung)||0, localSummary.highestRung),
+          clears:Math.max(Number(serverSummary.clears)||0, localSummary.clears)
+        }
+      : localSummary;
 
     el("runsBestScore").textContent = summary.bestScore.toLocaleString();
     el("runsHighestRung").textContent = summary.highestRung || "—";
@@ -644,7 +658,7 @@
     el("finalRung").textContent = rungReached;
     el("finalScore").textContent = score.toLocaleString();
     el("finalBestStreak").textContent = maxStreak;
-    el("personalBestBanner").hidden = !(score > previousBest);
+    el("personalBestBanner").hidden = !(previousRuns.length === 0 || score > previousBest);
     show(result);
   }
 
@@ -1002,6 +1016,7 @@
       };
       renderAuth();
       if(state.user.admin) refreshTmdbStatus();
+      syncLocalRunsToAccount().catch(() => {});
     } catch (_) {
       state.token = "";
       state.user = null;
