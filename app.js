@@ -85,7 +85,7 @@
       if(!media){
         const params = new URLSearchParams({title:q.tmdb.title});
         if(q.tmdb.year) params.set("year", q.tmdb.year);
-        media = await api("/api/tmdb/search?" + params.toString());
+        media = await api("/movie-ladder/tmdb/search?" + params.toString());
         mediaCache.set(key, media);
       }
       if(index >= questions.length || questions[index] !== q) return;
@@ -287,7 +287,7 @@
   async function refreshTmdbStatus(){
     if(!state.user?.admin) return;
     try {
-      state.tmdb = await api("/api/admin/tmdb");
+      state.tmdb = await api("/movie-ladder/admin/tmdb");
       paintTmdbStatus();
     } catch(error) {
       el("tmdbStatusPill").textContent = "API unavailable";
@@ -325,7 +325,7 @@
     if(!token){ el("tmdbMessage").textContent = "Paste the TMDB API Read Access Token first."; return; }
     el("tmdbMessage").textContent = "Verifying with TMDB…";
     try {
-      state.tmdb = await api("/api/admin/tmdb", {
+      state.tmdb = await api("/movie-ladder/admin/tmdb", {
         method:"PUT",
         headers:{"Content-Type":"application/json"},
         body:JSON.stringify({token})
@@ -341,7 +341,7 @@
   el("tmdbTestButton").addEventListener("click", async () => {
     el("tmdbMessage").textContent = "Testing saved credential…";
     try {
-      const tested = await api("/api/admin/tmdb/test", {method:"POST"});
+      const tested = await api("/movie-ladder/admin/tmdb/test", {method:"POST"});
       state.tmdb = {...state.tmdb,...tested,configured:true};
       tmdbFetchEnabled = true;
       paintTmdbStatus();
@@ -352,7 +352,7 @@
   el("tmdbDisconnectButton").addEventListener("click", async () => {
     if(!confirm("Disconnect TMDB from Movie Ladder?")) return;
     try {
-      state.tmdb = await api("/api/admin/tmdb", {method:"DELETE"});
+      state.tmdb = await api("/movie-ladder/admin/tmdb", {method:"DELETE"});
       tmdbFetchEnabled = false;
       mediaCache.clear();
       paintTmdbStatus();
