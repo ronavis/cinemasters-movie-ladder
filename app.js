@@ -7,7 +7,7 @@
   const ranks = ["Moviegoer","Video Store Clerk","Video Store Clerk","Projectionist","Projectionist","Film Buff","Film Buff","Movie Scholar","Movie Scholar","Cinemaster"];
   const mediaCache = new Map();
 
-  let index = 0, lives = 3, score = 0, locked = false;
+  let index = 0, lives = 3, score = 0, streak = 0, locked = false;
   let previousScreen = welcome;
   let googlePromise = null;
   let tmdbFetchEnabled = true;
@@ -67,10 +67,29 @@
     return payload;
   }
 
+  function mediaKey(q){
+    return q?.tmdb ? q.tmdb.title + "|" + (q.tmdb.year || "") : "";
+  }
+
+  async function getMedia(q){
+    if(!tmdbFetchEnabled || !q?.tmdb || !config.apiBase) return null;
+    const key = mediaKey(q);
+    if(mediaCache.has(key)) return mediaCache.get(key);
+    const params = new URLSearchParams({title:q.tmdb.title});
+    if(q.tmdb.year) params.set("year", q.tmdb.year);
+    const media = await api("/movie-ladder/tmdb/search?" + params.toString());
+    mediaCache.set(key, media);
+    return media;
+  }
+
   function setArtworkFallback(title, label){
-    const img = el("movieArtwork"), fallback = el("artworkFallback");
+    const img = el("movieArtwork"), poster = el("moviePoster"), fallback = el("artworkFallback"), wrap = document.querySelector(".artwork-wrap");
     img.hidden = true;
     img.removeAttribute("src");
+    poster.hidden = true;
+    poster.classList.remove("visible");
+    poster.removeAttribute("src");
+    wrap.classList.remove("has-poster");
     fallback.hidden = false;
     el("fallbackTitle").textContent = title;
     el("artworkBadge").textContent = label;
@@ -78,28 +97,87 @@
 
   async function loadMedia(q){
     setArtworkFallback(q.movie, "TMDB artwork");
-    if(!tmdbFetchEnabled || !q.tmdb || !config.apiBase) return;
-    const key = q.tmdb.title + "|" + (q.tmdb.year || "");
     try {
-      let media = mediaCache.get(key);
-      if(!media){
-        const params = new URLSearchParams({title:q.tmdb.title});
-        if(q.tmdb.year) params.set("year", q.tmdb.year);
-        media = await api("/movie-ladder/tmdb/search?" + params.toString());
-        mediaCache.set(key, media);
-      }
-      if(index >= questions.length || questions[index] !== q) return;
+      const media = await getMedia(q);
+      if(!media || index >= questions.length || questions[index] !== q) return;
       const image = media.backdrop || media.poster;
       if(!image){ el("artworkBadge").textContent = "TMDB • no artwork"; return; }
-      const img = el("movieArtwork"), fallback = el("artworkFallback");
-      img.onload = () => { if(questions[index] === q){ img.hidden = false; fallback.hidden = true; el("artworkBadge").textContent = "Artwork via TMDB"; } };
+
+      const img = el("movieArtwork"), poster = el("moviePoster"), fallback = el("artworkFallback"), wrap = document.querySelector(".artwork-wrap");
+      img.onload = () => {
+        if(questions[index] !== q) return;
+        img.hidden = false;
+        fallback.hidden = true;
+        el("artworkBadge").textContent = "Artwork via TMDB";
+      };
       img.onerror = () => setArtworkFallback(q.movie, "TMDB artwork unavailable");
       img.src = image;
-      img.alt = (media.title || q.movie) + " artwork from TMDB";
+      img.alt = (media.title || q.movie) + " backdrop from TMDB";
+
+      if(media.poster){
+        poster.onload = () => {
+          if(questions[index] !== q) return;
+          poster.hidden = false;
+          wrap.classList.add("has-poster");
+          requestAnimationFrame(() => poster.classList.add("visible"));
+        };
+        poster.onerror = () => {
+          poster.hidden = true;
+          wrap.classList.remove("has-poster");
+        };
+        poster.src = media.poster;
+        poster.alt = (media.title || q.movie) + " poster from TMDB";
+      }
     } catch (error) {
       if(!/could not find that movie/i.test(error.message)) tmdbFetchEnabled = false;
       setArtworkFallback(q.movie, "Artwork unavailable");
     }
+  }
+
+  async function loadHeroRail(){
+    const rail = el("heroPosterRail");
+    if(!rail || !tmdbFetchEnabled) return;
+    const picks = questions.slice(0,4);
+    const results = await Promise.allSettled(picks.map(getMedia));
+    const posters = results
+      .filter(result => result.status === "fulfilled" && result.value?.poster)
+      .map(result => result.value);
+    if(!posters.length) return;
+    rail.replaceChildren();
+    posters.forEach(media => {
+      const img = document.createElement("img");
+      img.src = media.poster;
+      img.alt = "";
+      rail.appendChild(img);
+    });
+    rail.classList.add("populated");
+  }
+
+  function renderLadder(){
+    const ladder = el("ladderDots");
+    if(!ladder) return;
+    ladder.replaceChildren();
+    questions.forEach((q, i) => {
+      const dot = document.createElement("span");
+      dot.className = "ladder-dot";
+      if(i < index) dot.classList.add("complete");
+      if(i === index) dot.classList.add("current");
+      dot.title = `Rung ${i+1}: ${ranks[i] || "Cinemaster"}`;
+      ladder.appendChild(dot);
+    });
+  }
+
+  function renderStreak(){
+    const label = el("streakLabel");
+    label.hidden = streak < 2;
+    label.textContent = `🔥 ${streak} correct`;
+  }
+
+  function animateScore(){
+    const scoreLabel = el("scoreLabel");
+    scoreLabel.classList.remove("bump");
+    void scoreLabel.offsetWidth;
+    scoreLabel.classList.add("bump");
   }
 
   function render(){
@@ -112,6 +190,8 @@
     el("rungLabel").textContent = `Rung ${index+1} / ${questions.length}`;
     el("difficultyLabel").textContent = q.difficulty;
     el("progressBar").style.width = `${((index+1)/questions.length)*100}%`;
+    renderLadder();
+    renderStreak();
     el("movieTitle").textContent = q.movie;
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
     el("pointsBadge").textContent = "+" + q.points.toLocaleString();
@@ -132,6 +212,14 @@
 
     el("feedback").hidden = true;
     el("nextButton").hidden = true;
+
+    const card = document.querySelector(".question-card");
+    card.classList.remove("entering");
+    void card.offsetWidth;
+    card.classList.add("entering");
+
+    const nextQuestion = questions[index + 1];
+    if(nextQuestion) getMedia(nextQuestion).catch(() => {});
   }
 
   function choose(choice, button){
@@ -143,10 +231,13 @@
     const good = choice === q.correct;
     if(good){
       score += q.points;
+      streak++;
       button.classList.add("correct");
       button.textContent = "✓ " + button.textContent;
+      animateScore();
     } else {
       lives--;
+      streak = 0;
       button.classList.add("wrong");
       button.textContent = "✕ " + button.textContent;
       const correct = buttons[q.correct];
@@ -156,6 +247,7 @@
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
     el("ticketsLabel").textContent = lives > 0 ? "🎟️ ".repeat(lives).trim() : "No tickets";
+    renderStreak();
     el("feedback").textContent = (good ? "Correct — climb! " : "Ticket lost. ") + q.note;
     el("feedback").hidden = false;
     const next = el("nextButton");
@@ -303,13 +395,13 @@
     await refreshTmdbStatus();
   }
 
-  el("startButton").addEventListener("click", () => { index = 0; lives = 3; score = 0; show(game); render(); });
+  el("startButton").addEventListener("click", () => { index = 0; lives = 3; score = 0; streak = 0; show(game); render(); });
   el("nextButton").addEventListener("click", () => {
     if(lives === 0){ finish(false); return; }
     if(index === questions.length - 1){ finish(true); return; }
     index++; render();
   });
-  el("replayButton").addEventListener("click", () => { index = 0; lives = 3; score = 0; show(game); render(); });
+  el("replayButton").addEventListener("click", () => { index = 0; lives = 3; score = 0; streak = 0; show(game); render(); });
   el("homeButton").addEventListener("click", () => show(welcome));
   el("accountButton").addEventListener("click", openAccount);
   el("closeAccountButton").addEventListener("click", () => el("accountDialog").close());
@@ -382,4 +474,5 @@
 
   renderAuth();
   restoreSession();
+  loadHeroRail();
 })();
