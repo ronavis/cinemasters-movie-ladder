@@ -83,24 +83,25 @@
     return media;
   }
 
-  async function getPerson(name){
+  async function getPerson(name, department="Acting"){
     if(!name || !config.apiBase) return null;
-    if(personCache.has(name)) return personCache.get(name);
+    const key = department + "|" + name;
+    if(personCache.has(key)) return personCache.get(key);
     try {
-      const params = new URLSearchParams({name});
+      const params = new URLSearchParams({name, department});
       const person = await api("/movie-ladder/tmdb/person?" + params.toString());
-      personCache.set(name, person);
+      personCache.set(key, person);
       return person;
     } catch (_) {
-      personCache.set(name, null);
+      personCache.set(key, null);
       return null;
     }
   }
 
   function setArtworkFallback(title){
-    const img = el("movieArtwork"), fallback = el("artworkFallback");
-    img.hidden = true;
-    img.removeAttribute("src");
+    const wrap = el("artworkWrap"), fallback = el("artworkFallback");
+    wrap.style.backgroundImage = "";
+    wrap.setAttribute("aria-label", title);
     fallback.hidden = false;
     el("fallbackTitle").textContent = title;
   }
@@ -114,21 +115,16 @@
       const image = media.poster || media.backdrop;
       if(!image) return;
 
-      const img = el("movieArtwork"), fallback = el("artworkFallback");
-      img.onload = () => {
-        if(questions[index] !== q) return;
-        img.hidden = false;
-        fallback.hidden = true;
-      };
-      img.onerror = () => setArtworkFallback(q.movie);
-      img.src = image;
-      img.alt = (media.title || q.movie) + " poster artwork";
+      const wrap = el("artworkWrap"), fallback = el("artworkFallback");
+      wrap.style.backgroundImage = `url("${image.replace(/"/g, "%22")}")`;
+      wrap.setAttribute("aria-label", (media.title || q.movie) + " movie poster");
+      fallback.hidden = true;
     } catch (_) {
       setArtworkFallback(q.movie);
     }
   }
 
-  async function addAnswerProfiles(button, names, label){
+  async function addAnswerProfiles(button, names, label, department="Acting"){
     const profiles = document.createElement("span");
     profiles.className = "answer-profiles";
     const text = document.createElement("span");
@@ -136,7 +132,7 @@
     text.textContent = label;
     button.append(profiles, text);
 
-    const people = await Promise.all(names.map(getPerson));
+    const people = await Promise.all(names.map(name => getPerson(name, department)));
     people.filter(person => person?.profile).forEach(person => {
       const img = document.createElement("img");
       img.className = "answer-avatar";
@@ -234,7 +230,7 @@
       const people = q.answerPeople?.[i];
       if(Array.isArray(people) && people.length){
         button.classList.add("person-answer");
-        addAnswerProfiles(button, people, label);
+        addAnswerProfiles(button, people, label, q.personDepartment || "Acting");
       } else {
         const text = document.createElement("span");
         text.className = "answer-label";
