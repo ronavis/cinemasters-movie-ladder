@@ -6,6 +6,7 @@
   const welcome = el("welcome"), game = el("game"), result = el("result"), settings = el("settings");
   const ranks = ["Moviegoer","Video Store Clerk","Video Store Clerk","Projectionist","Projectionist","Film Buff","Film Buff","Movie Scholar","Movie Scholar","Cinemaster"];
   const mediaCache = new Map();
+  const personCache = new Map();
 
   let index = 0, lives = 3, score = 0, streak = 0, locked = false;
   let previousScreen = welcome;
@@ -82,58 +83,80 @@
     return media;
   }
 
-  function setArtworkFallback(title, label){
-    const img = el("movieArtwork"), poster = el("moviePoster"), fallback = el("artworkFallback"), wrap = document.querySelector(".artwork-wrap");
+  async function getPerson(name){
+    if(!name || !config.apiBase) return null;
+    if(personCache.has(name)) return personCache.get(name);
+    try {
+      const params = new URLSearchParams({name});
+      const person = await api("/movie-ladder/tmdb/person?" + params.toString());
+      personCache.set(name, person);
+      return person;
+    } catch (_) {
+      personCache.set(name, null);
+      return null;
+    }
+  }
+
+  function setArtworkFallback(title){
+    const img = el("movieArtwork"), fallback = el("artworkFallback");
     img.hidden = true;
     img.removeAttribute("src");
-    poster.hidden = true;
-    poster.classList.remove("visible");
-    poster.removeAttribute("src");
-    wrap.classList.remove("has-poster");
     fallback.hidden = false;
     el("fallbackTitle").textContent = title;
-    el("artworkBadge").textContent = label;
   }
 
   async function loadMedia(q){
-    setArtworkFallback(q.movie, q?.tmdb ? "TMDB" : "");
-    el("artworkBadge").hidden = !q?.tmdb;
+    setArtworkFallback(q.movie);
     if(!q?.tmdb) return;
     try {
       const media = await getMedia(q);
       if(!media || index >= questions.length || questions[index] !== q) return;
-      const image = media.backdrop || media.poster;
-      if(!image){ el("artworkBadge").textContent = "TMDB"; return; }
+      const image = media.poster || media.backdrop;
+      if(!image) return;
 
-      const img = el("movieArtwork"), poster = el("moviePoster"), fallback = el("artworkFallback"), wrap = document.querySelector(".artwork-wrap");
+      const img = el("movieArtwork"), fallback = el("artworkFallback");
       img.onload = () => {
         if(questions[index] !== q) return;
         img.hidden = false;
         fallback.hidden = true;
-        el("artworkBadge").textContent = "TMDB";
       };
-      img.onerror = () => setArtworkFallback(q.movie, "TMDB artwork unavailable");
+      img.onerror = () => setArtworkFallback(q.movie);
       img.src = image;
-      img.alt = (media.title || q.movie) + " backdrop from TMDB";
-
-      if(media.poster){
-        poster.onload = () => {
-          if(questions[index] !== q) return;
-          poster.hidden = false;
-          wrap.classList.add("has-poster");
-          requestAnimationFrame(() => poster.classList.add("visible"));
-        };
-        poster.onerror = () => {
-          poster.hidden = true;
-          wrap.classList.remove("has-poster");
-        };
-        poster.src = media.poster;
-        poster.alt = (media.title || q.movie) + " poster from TMDB";
-      }
+      img.alt = (media.title || q.movie) + " poster artwork";
     } catch (error) {
       if(!/could not find that movie/i.test(error.message)) tmdbFetchEnabled = false;
-      setArtworkFallback(q.movie, "Artwork unavailable");
+      setArtworkFallback(q.movie);
     }
+  }
+
+  async function addAnswerProfiles(button, names, label){
+    const profiles = document.createElement("span");
+    profiles.className = "answer-profiles";
+    const text = document.createElement("span");
+    text.className = "answer-label";
+    text.textContent = label;
+    button.append(profiles, text);
+
+    const people = await Promise.all(names.map(getPerson));
+    people.filter(person => person?.profile).forEach(person => {
+      const img = document.createElement("img");
+      img.className = "answer-avatar";
+      img.src = person.profile;
+      img.alt = "";
+      img.setAttribute("aria-hidden", "true");
+      profiles.appendChild(img);
+    });
+    if(!profiles.children.length) profiles.remove();
+  }
+
+  function markAnswer(button, symbol){
+    let mark = button.querySelector(".answer-state");
+    if(!mark){
+      mark = document.createElement("span");
+      mark.className = "answer-state";
+      button.prepend(mark);
+    }
+    mark.textContent = symbol;
   }
 
   async function loadHeroRail(){
@@ -197,7 +220,6 @@
     el("movieTitle").textContent = q.movie;
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
     el("pointsBadge").textContent = "+" + q.points.toLocaleString();
-    el("sourceChip").textContent = q.source;
     el("questionText").textContent = q.question;
     loadMedia(q);
 
@@ -207,9 +229,19 @@
       const button = document.createElement("button");
       button.type = "button";
       button.className = "answer-button";
-      button.textContent = label;
       button.addEventListener("click", () => choose(i, button));
       answers.appendChild(button);
+
+      const people = q.answerPeople?.[i];
+      if(Array.isArray(people) && people.length){
+        button.classList.add("person-answer");
+        addAnswerProfiles(button, people, label);
+      } else {
+        const text = document.createElement("span");
+        text.className = "answer-label";
+        text.textContent = label;
+        button.appendChild(text);
+      }
     });
 
     el("feedback").hidden = true;
@@ -235,16 +267,16 @@
       score += q.points;
       streak++;
       button.classList.add("correct");
-      button.textContent = "✓ " + button.textContent;
+      markAnswer(button, "✓");
       animateScore();
     } else {
       lives--;
       streak = 0;
       button.classList.add("wrong");
-      button.textContent = "✕ " + button.textContent;
+      markAnswer(button, "✕");
       const correct = buttons[q.correct];
       correct.classList.add("correct");
-      correct.textContent = "✓ " + correct.textContent;
+      markAnswer(correct, "✓");
     }
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
