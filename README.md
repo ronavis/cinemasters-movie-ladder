@@ -25,6 +25,7 @@ Movie Ladder is built around a 10-rung run. The player starts as a Moviegoer, cl
 - rank-specific result graphics
 - recent run history and personal bests
 - signed-in run history synced through the VPS
+- question correctness analytics with administrator review statistics
 
 The frontend is static GitHub Pages. The private API runs inside the existing Nick's Arcade Flask service on the VPS.
 
@@ -369,7 +370,7 @@ The goal is editorial quality: identify questions that are consistently too easy
 For each answered question, Movie Ladder records:
 
 - a random event UUID;
-- the random run UUID;
+- a separate random analytics run UUID, independent of signed-in run history;
 - question ID;
 - rung;
 - answer type;
@@ -379,7 +380,7 @@ For each answered question, Movie Ladder records:
 - whether the response was correct;
 - server timestamp.
 
-These analytics events do **not** store the player's Google email or account identity.
+These analytics events do **not** store the player's Google email or account identity. The recorder sends no Google authorization header or cookies, and analytics run IDs cannot be joined to account run-history IDs.
 
 Anonymous players contribute to the same aggregate question-quality data.
 
@@ -394,6 +395,10 @@ Question-level aggregate statistics are administrator-only:
 `GET /arcade-api/movie-ladder/admin/question-stats`
 
 The aggregate response includes attempts, correct answers, wrong answers, accuracy percentage, rung, answer type, question text, and last-seen timestamp.
+
+**Settings → Question analytics** displays attempts, correct, wrong, accuracy %, rung, and question type. Sort by lowest accuracy, most wrong answers, most attempts, or rung; refresh for current counts. The table scrolls within Settings on phones. Questions with few attempts need more evidence before an editorial change.
+
+These are client-reported editorial signals, not tamper-proof scoring. The public recorder recomputes correctness from submitted selections, but anonymous clients can fabricate events.
 
 This gives the administrator a basis for decisions such as:
 

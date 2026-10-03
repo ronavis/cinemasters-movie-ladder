@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#f7f3e8">
   <meta name="description" content="Cinemasters Movie Ladder — climb the movie trivia ladder.">
   <title>Cinemasters Movie Ladder</title>
-  <link rel="stylesheet" href="styles.css?v=20261003-question-analytics-1">
+  <link rel="stylesheet" href="styles.css?v=20261003-question-stats-2">
 </head>
 <body>
   <main class="app-shell">
@@ -198,6 +198,29 @@
           <button id="triviaClearButton" class="danger-button full-width" type="button" disabled>Clear imported questions</button>
         </section>
 
+        <section class="settings-section" aria-labelledby="questionStatsTitle">
+          <h3 id="questionStatsTitle">Question analytics</h3>
+          <p>Review questions players often miss. A low accuracy from only a few attempts is an early signal; compare it with the number of attempts before changing a question.</p>
+          <p id="questionStatsSummary" class="small-copy"></p>
+          <div class="settings-form">
+            <label for="questionStatsSort">Sort questions</label>
+            <select id="questionStatsSort">
+              <option value="accuracy">Lowest accuracy first</option>
+              <option value="wrong">Most wrong answers first</option>
+              <option value="attempts">Most attempts first</option>
+              <option value="rung">Rung</option>
+            </select>
+          </div>
+          <button id="questionStatsRefresh" class="secondary-button" type="button">Refresh statistics</button>
+          <div id="questionStatsTable" class="csv-preview-scroll question-stats-scroll" role="region" aria-label="Question statistics" tabindex="0" hidden>
+            <table>
+              <thead><tr><th scope="col">Rung</th><th scope="col">Question</th><th scope="col">Type</th><th scope="col">Attempts</th><th scope="col">Correct</th><th scope="col">Wrong</th><th scope="col">Accuracy</th></tr></thead>
+              <tbody id="questionStatsRows"></tbody>
+            </table>
+          </div>
+          <p id="questionStatsMessage" class="settings-message" role="status" aria-live="polite"></p>
+        </section>
+
         <section class="settings-section">
           <h3>Admin authority</h3>
           <p id="adminIdentity">Signed-in administrator</p>
@@ -264,8 +287,8 @@
     </div>
   </dialog>
 
-  <script src="config.js?v=20261003-question-analytics-1"></script>
-  <script src="data/questions.js?v=20261003-question-analytics-1"></script>
-  <script src="app.js?v=20261003-question-analytics-1"></script>
+  <script src="config.js?v=20261003-question-stats-2"></script>
+  <script src="data/questions.js?v=20261003-question-stats-2"></script>
+  <script src="app.js?v=20261003-question-stats-2"></script>
 </body>
 </html>

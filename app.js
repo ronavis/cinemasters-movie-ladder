@@ -19,6 +19,8 @@
   let index = 0, lives = 3, score = 0, streak = 0, maxStreak = 0;
   let correctCount = 0, wrongCount = 0, locked = false, runRecorded = false;
   let currentRunId = "";
+  let analyticsRunId = "";
+  let questionStats = [];
   let orderSelections = [];
   let questionEventFlushPromise = null;
   let previousScreen = welcome;
@@ -82,10 +84,10 @@
 
   async function api(path, options = {}){
     const headers = new Headers(options.headers || {});
-    if(state.token) headers.set("Authorization", "Bearer " + state.token);
+    if(state.token && path !== "/movie-ladder/question-events") headers.set("Authorization", "Bearer " + state.token);
     let response;
     try {
-      response = await fetch(apiUrl(path), {...options, headers});
+      response = await fetch(apiUrl(path), {...options, headers, ...(path === "/movie-ladder/question-events" ? {credentials:"omit"} : {})});
     } catch (_) {
       const error = new Error("The Movie Ladder account service is not online yet. You can still play normally.");
       error.code = "SERVICE_OFFLINE";
@@ -188,6 +190,7 @@
     locked = false;
     runRecorded = false;
     currentRunId = newRunId();
+    analyticsRunId = newRunId();
     orderSelections = [];
   }
 
@@ -326,10 +329,10 @@
   }
 
   function queueQuestionEvent(question, selected, correct){
-    if(!question || !currentRunId) return;
+    if(!question || !analyticsRunId) return;
     const event = {
       id:newRunId(),
-      runId:currentRunId,
+      runId:analyticsRunId,
       questionId:questionKey(question),
       rung:Number(question.rung) || Math.min(index + 1, 10),
       answerType:analyticsAnswerType(question),
@@ -1319,12 +1322,59 @@
     }
   }
 
+  function renderQuestionStats(){
+    const sort = el("questionStatsSort").value;
+    const rows = [...questionStats].sort((a,b) => {
+      if(sort === "accuracy") return a.accuracyPercent - b.accuracyPercent || b.attempts - a.attempts;
+      if(sort === "wrong") return b.wrong - a.wrong || b.attempts - a.attempts;
+      if(sort === "rung") return a.rung - b.rung || b.attempts - a.attempts;
+      return b.attempts - a.attempts || b.wrong - a.wrong;
+    });
+    const body = el("questionStatsRows");
+    body.replaceChildren();
+    for(const item of rows){
+      const row = document.createElement("tr");
+      for(const value of [item.rung, item.question, item.answerType, item.attempts, item.correct, item.wrong, `${item.accuracyPercent}%`]){
+        const cell = document.createElement("td");
+        cell.textContent = String(value);
+        row.append(cell);
+      }
+      body.append(row);
+    }
+    el("questionStatsTable").hidden = rows.length === 0;
+  }
+
+  async function refreshQuestionStats(){
+    if(!state.user?.admin) return;
+    const button = el("questionStatsRefresh");
+    button.disabled = true;
+    el("questionStatsMessage").textContent = "Loading question statistics…";
+    try {
+      const payload = await api("/movie-ladder/admin/question-stats");
+      questionStats = payload.questions || [];
+      const summary = payload.summary;
+      el("questionStatsSummary").textContent = `${summary.attempts} attempts · ${summary.correct} correct · ${summary.wrong} wrong · ${summary.accuracyPercent == null ? "—" : summary.accuracyPercent + "%"} accuracy`;
+      renderQuestionStats();
+      el("questionStatsMessage").textContent = questionStats.length ? "Updated just now. Use attempt counts alongside accuracy when reviewing questions." : "No answered questions recorded yet.";
+    } catch(error) {
+      questionStats = [];
+      renderQuestionStats();
+      el("questionStatsSummary").textContent = "Statistics unavailable";
+      el("questionStatsMessage").textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
+  el("questionStatsSort").addEventListener("change", renderQuestionStats);
+  el("questionStatsRefresh").addEventListener("click", refreshQuestionStats);
+
   async function openSettings(){
     if(!state.user?.admin) return;
     show(settings);
     el("tmdbMessage").textContent = "";
     el("triviaImportMessage").textContent = "";
-    await Promise.all([refreshTmdbStatus(), refreshQuestionBankStatus()]);
+    await Promise.all([refreshTmdbStatus(), refreshQuestionBankStatus(), refreshQuestionStats()]);
   }
 
   el("startButton").addEventListener("click", () => {

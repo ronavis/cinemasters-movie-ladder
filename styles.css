@@ -1468,3 +1468,10 @@ h1{
 .poster-choice{
   border-radius:0!important;
 }
+
+.question-stats-scroll{margin-top:16px;max-height:480px;overflow:auto}
+.question-stats-scroll table{width:100%;min-width:680px;border-collapse:collapse;font-size:13px}
+.question-stats-scroll th,.question-stats-scroll td{text-align:left;padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+.question-stats-scroll th{position:sticky;top:0;background:#f4f1e9}
+.question-stats-scroll td:nth-child(2){min-width:220px;max-width:340px;overflow-wrap:anywhere}
+#questionStatsRefresh{margin-top:12px}
