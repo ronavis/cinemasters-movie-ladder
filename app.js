@@ -14,6 +14,7 @@
   const ranks = ["Moviegoer","Video Store Clerk","Video Store Clerk","Projectionist","Projectionist","Film Buff","Film Buff","Movie Scholar","Movie Scholar","Cinemaster"];
   const mediaCache = new Map();
   const personCache = new Map();
+  const movieOrderCache = new Map();
 
   let index = 0, lives = 3, score = 0, streak = 0, maxStreak = 0;
   let correctCount = 0, wrongCount = 0, locked = false, runRecorded = false;
@@ -443,16 +444,86 @@
   function isMovieOrderQuestion(q){
     if(!Array.isArray(q?.answerMovies) || q.answerMovies.length !== 4) return false;
     if(String(q.genre || "").trim().toLowerCase() !== "timeline") return false;
-    const years = q.answerMovies.map(choice => Number(choice.year));
-    return years.every(year => Number.isInteger(year) && year >= 1880 && year <= 2200)
-      && new Set(years).size === years.length;
+    return q.answerMovies.every(choice => {
+      const year = Number(choice.year);
+      return Number.isInteger(year) && year >= 1880 && year <= 2200;
+    });
   }
 
-  function movieOrderIndexes(q){
+  function movieOrderKey(q){
     return q.answerMovies
-      .map((choice, i) => ({i, year:Number(choice.year)}))
-      .sort((a,b) => a.year - b.year)
-      .map(item => item.i);
+      .map(choice => [choice.title || "", choice.year || ""].join("|"))
+      .join("::");
+  }
+
+  function releaseDateValue(value){
+    const text = String(value || "").trim();
+    if(!/^\d{4}-\d{2}-\d{2}$/.test(text)) return null;
+    const parsed = Date.parse(text + "T00:00:00Z");
+    return Number.isFinite(parsed) ? parsed : null;
+  }
+
+  async function resolveMovieOrder(q){
+    const key = movieOrderKey(q);
+    if(movieOrderCache.has(key)) return movieOrderCache.get(key);
+
+    const pending = Promise.all(q.answerMovies.map(async (choice, i) => {
+      let releaseDate = "";
+      try {
+        const media = await getMedia({tmdb:choice});
+        releaseDate = String(media?.releaseDate || "");
+      } catch (_) {}
+
+      return {
+        i,
+        title:choice.title,
+        year:Number(choice.year),
+        releaseDate,
+        dateValue:releaseDateValue(releaseDate)
+      };
+    })).then(items => {
+      const exactDates = items.map(item => item.dateValue);
+      if(
+        exactDates.every(Number.isFinite) &&
+        new Set(exactDates).size === items.length
+      ){
+        return {
+          indexes:[...items].sort((a,b) => a.dateValue - b.dateValue).map(item => item.i),
+          items
+        };
+      }
+
+      const years = items.map(item => item.year);
+      if(
+        years.every(year => Number.isInteger(year)) &&
+        new Set(years).size === items.length
+      ){
+        return {
+          indexes:[...items].sort((a,b) => a.year - b.year).map(item => item.i),
+          items
+        };
+      }
+
+      return null;
+    });
+
+    movieOrderCache.set(key, pending);
+    return pending;
+  }
+
+  function formatReleaseDate(value){
+    const parsed = releaseDateValue(value);
+    if(!Number.isFinite(parsed)) return "";
+    try {
+      return new Date(parsed).toLocaleDateString("en-US", {
+        month:"short",
+        day:"numeric",
+        year:"numeric",
+        timeZone:"UTC"
+      });
+    } catch (_) {
+      return String(value);
+    }
   }
 
   async function renderPosterGrid(q){
@@ -465,9 +536,10 @@
     fallback.hidden = true;
     grid.hidden = false;
     grid.replaceChildren();
-    grid.classList.remove("order-correct","order-wrong");
+    grid.classList.remove("order-correct","order-wrong","order-loading");
     const orderMode = isMovieOrderQuestion(q);
     grid.classList.toggle("order-grid", orderMode);
+    grid.classList.toggle("order-loading", orderMode);
     orderSelections = [];
 
     q.answerMovies.forEach((choice, i) => {
@@ -476,6 +548,7 @@
       button.className = "poster-choice";
       button.dataset.answerIndex = String(i);
       button.setAttribute("aria-label", choice.title + (choice.year ? ` (${choice.year})` : ""));
+      if(orderMode) button.disabled = true;
       button.addEventListener("click", () => orderMode ? chooseMovieOrder(i, button, q) : choose(i, button));
 
       const label = document.createElement("span");
@@ -495,6 +568,28 @@
         preload.src = media.poster;
       }).catch(() => {});
     });
+
+    if(orderMode){
+      resolveMovieOrder(q).then(order => {
+        if(questions[index] !== q) return;
+        grid.classList.remove("order-loading");
+        [...grid.querySelectorAll("[data-answer-index]")].forEach(button => {
+          button.disabled = false;
+        });
+        if(!order){
+          grid.dataset.orderFallback = "single";
+        } else {
+          delete grid.dataset.orderFallback;
+        }
+      }).catch(() => {
+        if(questions[index] !== q) return;
+        grid.classList.remove("order-loading");
+        [...grid.querySelectorAll("[data-answer-index]")].forEach(button => {
+          button.disabled = false;
+        });
+        grid.dataset.orderFallback = "single";
+      });
+    }
   }
 
   async function loadMedia(q){
@@ -732,8 +827,14 @@
     }
   }
 
-  function chooseMovieOrder(choice, button, q){
+  async function chooseMovieOrder(choice, button, q){
     if(locked || button.disabled) return;
+
+    const resolved = await resolveMovieOrder(q);
+    if(!resolved){
+      choose(choice, button);
+      return;
+    }
 
     orderSelections.push(choice);
     const position = orderSelections.length;
@@ -754,7 +855,7 @@
     const buttons = [...el("posterGrid").querySelectorAll("[data-answer-index]")];
     buttons.forEach(item => { item.disabled = true; });
 
-    const expected = movieOrderIndexes(q);
+    const expected = resolved.indexes;
     const good = orderSelections.every((value, i) => value === expected[i]);
 
     if(good){
@@ -772,8 +873,19 @@
       el("posterGrid").classList.add("order-wrong");
     }
 
+    const yearCounts = resolved.items.reduce((counts, item) => {
+      counts[item.year] = (counts[item.year] || 0) + 1;
+      return counts;
+    }, {});
+
     const correctOrder = expected
-      .map(i => `${q.answerMovies[i].title} (${q.answerMovies[i].year})`)
+      .map(i => {
+        const item = resolved.items[i];
+        const detail = yearCounts[item.year] > 1 && item.releaseDate
+          ? formatReleaseDate(item.releaseDate)
+          : item.year;
+        return `${q.answerMovies[i].title} (${detail})`;
+      })
       .join(" → ");
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
