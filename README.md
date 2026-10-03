@@ -396,7 +396,7 @@ Question-level aggregate statistics are administrator-only:
 
 The aggregate response includes attempts, correct answers, wrong answers, accuracy percentage, rung, answer type, question text, and last-seen timestamp.
 
-**Settings → Question analytics** displays attempts, correct, wrong, accuracy %, rung, and question type. Sort by lowest accuracy, most wrong answers, most attempts, or rung; refresh for current counts. The table scrolls within Settings on phones. Questions with few attempts need more evidence before an editorial change.
+**Settings → Question analytics** displays attempts, correct, wrong, accuracy %, rung, and question type. Sort by lowest accuracy, most wrong answers, most attempts, or rung; refresh for current counts. On phones, each question displays its metrics together without horizontal scrolling. Questions with few attempts need more evidence before an editorial change.
 
 These are client-reported editorial signals, not tamper-proof scoring. The public recorder recomputes correctness from submitted selections, but anonymous clients can fabricate events.
 
@@ -645,7 +645,7 @@ More questions still increase variety, but repeated runs should no longer feel l
 
 ## Gameplay scrolling
 
-After an answer is resolved, Movie Ladder scrolls the feedback and **Next rung** control into view. Advancing to the next rung scrolls the new compact HUD back into view so phone players do not have to manually chase the game up and down the page.
+After an answer is resolved, Movie Ladder scrolls the feedback and **Next rung** control into view. Advancing to the next rung scrolls the new question context and rung wheel back into view so phone players do not have to manually chase the game up and down the page.
 
 ## Era and difficulty guidance
 
@@ -697,3 +697,11 @@ When adding a batch of trivia:
 11. Start a few fresh runs and verify posters/headshots/questions in the actual game.
 
 If something looks wrong, fix the CSV and re-import rather than editing production storage by hand.
+
+## Approved interface polish
+
+Gameplay uses a cream/emerald/gold palette with a compact circular rung indicator, subdued rank, and menu inside the question area. Poster context sits beside the question; text/person choices span the card width with A–D keys. Movie choices and release timelines retain full-width 2×2 poster grids. Tickets and score follow the choices. Release-timeline accessible labels do not reveal years before answering.
+
+Administrator Settings opens to TMDb connection, question bank, and question analytics navigation, using the existing server-backed operations. Credits is available from the menu to all players. TMDb attribution uses the official developer-documentation logo. Bootstrap Icons 1.11.3 is bundled with its MIT license. No prototype selectors, sample data, or design-preview controls are included.
+
+This interface change does not alter question bank storage, identity, run history, analytics payloads, or backend endpoints.

@@ -6,17 +6,21 @@
   <meta name="theme-color" content="#f7f3e8">
   <meta name="description" content="Cinemasters Movie Ladder — climb the movie trivia ladder.">
   <title>Cinemasters Movie Ladder</title>
-  <link rel="stylesheet" href="styles.css?v=20261003-question-stats-3">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="assets/icons/bootstrap-icons.min.css">
+  <link rel="stylesheet" href="styles.css?v=20261003-integrated-ux-1">
 </head>
 <body>
   <main class="app-shell">
     <header class="app-toolbar app-toolbar-minimal">
       <details id="appMenu" class="app-menu">
-        <summary class="menu-toggle" aria-label="Open Movie Ladder menu">☰</summary>
+        <summary class="menu-toggle" aria-label="Open Movie Ladder menu"><i class="bi bi-list" aria-hidden="true"></i></summary>
         <div class="menu-panel">
           <button id="homeButton" class="menu-item" type="button">Home</button>
           <button id="runsButton" class="menu-item" type="button">Runs</button>
           <button id="settingsButton" class="menu-item" type="button" hidden>Settings</button>
+          <button id="creditsButton" class="menu-item" type="button">Credits</button>
           <button id="accountButton" class="menu-item" type="button">Sign in</button>
         </div>
       </details>
@@ -42,34 +46,11 @@
           <button id="startButton" class="primary-button" type="button">Start Climbing</button>
         </div>
       </div>
-      <section class="credits-card" aria-label="Data credits">
-        <a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">TMDB</a>
-        <p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
-      </section>
+
     </section>
 
     <section id="game" class="screen" aria-live="polite">
       <div class="game-stage">
-      <div class="game-hud">
-        <div class="hud-top">
-          <div class="hud-rank">
-            <span class="hud-label">Rank</span>
-            <strong id="rankLabel" class="rank-label">Moviegoer</strong>
-          </div>
-          <div class="hud-rung">
-            <strong id="rungLabel">1 / 10</strong>
-            <span id="difficultyLabel">Warm-up</span>
-          </div>
-          <div class="score-block">
-            <div id="ticketsLabel" class="tickets">🎟️ 🎟️ 🎟️</div>
-            <div id="scoreLabel" class="score">0 pts</div>
-            <div id="streakLabel" class="streak-label" hidden>🔥 2 streak</div>
-          </div>
-        </div>
-        <div id="ladderDots" class="ladder-dots hud-ladder" aria-label="Movie Ladder progress"></div>
-        <div class="progress-track" aria-hidden="true"><div id="progressBar" class="progress-bar"></div></div>
-      </div>
-
       <article class="question-card">
         <div id="artworkWrap" class="artwork-wrap" role="img" aria-label="">
           <div id="posterGrid" class="poster-grid" hidden></div>
@@ -80,6 +61,11 @@
         </div>
 
         <div class="question-body">
+          <div class="question-meta game-hud">
+            <div id="rungProgress" class="rung-wheel" role="progressbar" aria-label="Current rung" aria-valuemin="1" aria-valuemax="10"><canvas id="wheelChart" width="96" height="96" aria-hidden="true"></canvas><strong id="rungLabel">1 / 10</strong></div>
+            <span id="rankLabel" class="quiet-rank">Moviegoer</span><div id="gameMenuSlot"></div>
+          </div>
+          <div hidden><span id="difficultyLabel"></span><div id="ladderDots"></div><div id="progressBar"></div></div>
           <div class="movie-line">
             <div>
               <h2 id="movieTitle">Movie</h2>
@@ -89,6 +75,7 @@
           </div>
           <h3 id="questionText">Question</h3>
           <div id="answers" class="answers"></div>
+          <div class="run-status"><span><i class="bi bi-ticket" aria-hidden="true"></i><span id="ticketsLabel">3 tickets</span></span><strong id="scoreLabel">0 pts</strong><span id="streakLabel" class="streak-label" hidden></span></div>
           <div id="feedback" class="feedback" hidden></div>
           <button id="nextButton" class="primary-button" type="button" hidden>Next rung</button>
         </div>
@@ -123,7 +110,13 @@
           <button id="settingsBackButton" class="toolbar-button" type="button">Done</button>
         </div>
 
-        <section class="settings-section">
+        <div id="settingsOverview" class="settings-overview">
+          <button type="button" data-settings-target="connection"><i class="bi bi-plug-fill" aria-hidden="true"></i><span><strong>TMDb connection</strong><small>Movie artwork and release dates</small></span><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+          <button type="button" data-settings-target="bank"><i class="bi bi-file-earmark-text" aria-hidden="true"></i><span><strong>Question bank</strong><small>Import and review questions</small></span><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+          <button type="button" data-settings-target="stats"><i class="bi bi-bar-chart-fill" aria-hidden="true"></i><span><strong>Question analytics</strong><small>See which questions players miss</small></span><i class="bi bi-chevron-right" aria-hidden="true"></i></button>
+        </div>
+        <button id="settingsPanelBack" class="secondary-button" type="button" hidden>Back to Settings</button>
+        <section class="settings-section" data-settings-panel="connection" hidden>
           <div class="settings-row">
             <div>
               <h3>TMDB connection</h3>
@@ -148,7 +141,7 @@
           <p id="tmdbMessage" class="settings-message" role="status" aria-live="polite"></p>
         </section>
 
-        <section class="settings-section" aria-labelledby="triviaImportTitle">
+        <section class="settings-section" data-settings-panel="bank" aria-labelledby="triviaImportTitle" hidden>
           <div class="settings-row">
             <div>
               <h3 id="triviaImportTitle">Trivia question bank</h3>
@@ -198,7 +191,7 @@
           <button id="triviaClearButton" class="danger-button full-width" type="button" disabled>Clear imported questions</button>
         </section>
 
-        <section class="settings-section" aria-labelledby="questionStatsTitle">
+        <section class="settings-section" data-settings-panel="stats" aria-labelledby="questionStatsTitle" hidden>
           <h3 id="questionStatsTitle">Question analytics</h3>
           <p>Review questions players often miss. A low accuracy from only a few attempts is an early signal; compare it with the number of attempts before changing a question.</p>
           <p id="questionStatsSummary" class="small-copy"></p>
@@ -228,7 +221,8 @@
         </section>
 
         <section class="settings-section">
-          <h3>TMDB attribution</h3>
+          <h3>Credits</h3>
+          <img src="assets/tmdb-logo.svg" width="90" height="20" alt="TMDB">
           <p><a href="https://www.themoviedb.org" target="_blank" rel="noreferrer">The Movie Database (TMDB)</a></p>
           <p class="small-copy">This product uses the TMDB API but is not endorsed or certified by TMDB.</p>
         </section>
@@ -287,8 +281,9 @@
     </div>
   </dialog>
 
-  <script src="config.js?v=20261003-question-stats-3"></script>
-  <script src="data/questions.js?v=20261003-question-stats-3"></script>
-  <script src="app.js?v=20261003-question-stats-3"></script>
+  <dialog id="creditsDialog" class="account-dialog"><h2>Credits</h2><a href="https://www.themoviedb.org" target="_blank" rel="noreferrer"><img src="assets/tmdb-logo.svg" width="90" height="20" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><button id="closeCredits" class="secondary-button" type="button">Done</button></dialog>
+  <script src="config.js?v=20261003-integrated-ux-1"></script>
+  <script src="data/questions.js?v=20261003-integrated-ux-1"></script>
+  <script src="app.js?v=20261003-integrated-ux-1"></script>
 </body>
 </html>

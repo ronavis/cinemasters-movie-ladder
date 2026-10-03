@@ -44,6 +44,7 @@
     const active = screens.find(s => s.classList.contains("active"));
     const menu = el("appMenu");
     if(menu){
+      (screen === game ? el("gameMenuSlot") : document.querySelector(".app-toolbar")).appendChild(menu);
       menu.removeAttribute("open");
       menu.hidden = screen === settings;
     }
@@ -622,7 +623,7 @@
       button.type = "button";
       button.className = "poster-choice";
       button.dataset.answerIndex = String(i);
-      button.setAttribute("aria-label", choice.title + (choice.year ? ` (${choice.year})` : ""));
+      button.setAttribute("aria-label", choice.title + (!orderMode && choice.year ? ` (${choice.year})` : ""));
       if(orderMode) button.disabled = true;
       button.addEventListener("click", () => orderMode ? chooseMovieOrder(i, button, q) : choose(i, button));
 
@@ -798,6 +799,14 @@
     });
   }
 
+  function renderWheel(){
+    const canvas=el("wheelChart"),ctx=canvas.getContext("2d"),progress=el("rungProgress");
+    ctx.clearRect(0,0,96,96);ctx.lineWidth=7;ctx.lineCap="round";
+    ctx.strokeStyle="#c5cec3";ctx.beginPath();ctx.arc(48,48,41,0,Math.PI*2);ctx.stroke();
+    ctx.strokeStyle="#ffbf09";ctx.beginPath();ctx.arc(48,48,41,-Math.PI/2,-Math.PI/2+(index+1)/questions.length*Math.PI*2);ctx.stroke();
+    progress.setAttribute("aria-valuemax",String(questions.length));progress.setAttribute("aria-valuenow",String(index+1));progress.setAttribute("aria-valuetext",`Rung ${index+1} of ${questions.length}`);
+  }
+
   function prefersReducedMotion(){
     return window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
   }
@@ -835,12 +844,14 @@
     if(!q){ finish(false); return; }
     locked = false;
     el("rankLabel").textContent = ranks[index] || "Cinemaster";
-    el("ticketsLabel").textContent = lives > 0 ? "🎟️ ".repeat(lives).trim() : "No tickets";
+    el("ticketsLabel").textContent = `${lives} ${lives === 1 ? "ticket" : "tickets"}`;
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
-    el("rungLabel").textContent = `Rung ${index+1} / ${questions.length}`;
+    el("rungLabel").textContent = `${index+1} / ${questions.length}`;
     el("difficultyLabel").textContent = q.difficulty;
     el("progressBar").style.width = `${((index+1)/questions.length)*100}%`;
     renderLadder();
+    renderWheel();
+    document.querySelector(".question-card").classList.toggle("movie-choice-mode", Array.isArray(q.answerMovies));
     renderStreak();
     el("movieTitle").textContent = q.movie;
     el("movieSubtitle").textContent = [q.year,q.genre].filter(Boolean).join(" • ");
@@ -875,6 +886,7 @@
         button.type = "button";
         button.className = "answer-button";
         button.dataset.answerIndex = String(i);
+        const key=document.createElement("span");key.className="answer-key";key.textContent=String.fromCharCode(65+i);key.setAttribute("aria-hidden","true");button.appendChild(key);
         button.addEventListener("click", () => choose(i, button));
         answers.appendChild(button);
 
@@ -970,7 +982,7 @@
       .join(" → ");
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
-    el("ticketsLabel").textContent = lives > 0 ? "🎟️ ".repeat(lives).trim() : "No tickets";
+    el("ticketsLabel").textContent = `${lives} ${lives === 1 ? "ticket" : "tickets"}`;
     renderStreak();
 
     el("feedback").textContent = (good ? "Correct — climb! " : "Ticket lost. ")
@@ -1014,7 +1026,7 @@
     queueQuestionEvent(q, [choice], [q.correct]);
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
-    el("ticketsLabel").textContent = lives > 0 ? "🎟️ ".repeat(lives).trim() : "No tickets";
+    el("ticketsLabel").textContent = `${lives} ${lives === 1 ? "ticket" : "tickets"}`;
     renderStreak();
     el("feedback").textContent = (good ? "Correct — climb! " : "Ticket lost. ") + q.note;
     el("feedback").hidden = false;
@@ -1337,6 +1349,7 @@
       for(const value of [item.rung, item.question, item.answerType, item.attempts, item.correct, item.wrong, `${item.accuracyPercent}%`]){
         const cell = document.createElement("td");
         cell.textContent = String(value);
+        cell.dataset.label = ["Rung", "Question", "Type", "Attempts", "Correct", "Wrong", "Accuracy"][row.children.length];
         row.append(cell);
       }
       body.append(row);
@@ -1370,12 +1383,22 @@
   el("questionStatsRefresh").addEventListener("click", refreshQuestionStats);
 
   async function openSettings(){
+    showSettingsPanel(null);
     if(!state.user?.admin) return;
     show(settings);
     el("tmdbMessage").textContent = "";
     el("triviaImportMessage").textContent = "";
     await Promise.all([refreshTmdbStatus(), refreshQuestionBankStatus(), refreshQuestionStats()]);
   }
+
+  function showSettingsPanel(name){
+    el("settingsOverview").hidden=!!name;el("settingsPanelBack").hidden=!name;
+    document.querySelectorAll("[data-settings-panel]").forEach(panel=>{panel.hidden=panel.dataset.settingsPanel!==name;});
+  }
+  document.querySelectorAll("[data-settings-target]").forEach(button=>button.addEventListener("click",()=>showSettingsPanel(button.dataset.settingsTarget)));
+  el("settingsPanelBack").addEventListener("click",()=>showSettingsPanel(null));
+  el("creditsButton").addEventListener("click",()=>{closeAppMenu();el("creditsDialog").showModal();});
+  el("closeCredits").addEventListener("click",()=>el("creditsDialog").close());
 
   el("startButton").addEventListener("click", () => {
     questions = buildRunQuestions();
