@@ -360,6 +360,50 @@ This product uses the TMDb API but is not endorsed or certified by TMDb.
 
 ---
 
+# Question correctness analytics
+
+Movie Ladder records anonymous per-question answer events so the question bank can be tuned using real play data.
+
+The goal is editorial quality: identify questions that are consistently too easy, too hard, confusing, misleading, or poor fits for their rung.
+
+For each answered question, Movie Ladder records:
+
+- a random event UUID;
+- the random run UUID;
+- question ID;
+- rung;
+- answer type;
+- a snapshot of the question and four answer choices;
+- the selected answer index or ordered timeline sequence;
+- the correct answer index or correct timeline sequence;
+- whether the response was correct;
+- server timestamp.
+
+These analytics events do **not** store the player's Google email or account identity.
+
+Anonymous players contribute to the same aggregate question-quality data.
+
+The browser keeps a small local retry queue and attempts to resend events if the analytics API is temporarily unavailable.
+
+Public recording endpoint:
+
+`POST /arcade-api/movie-ladder/question-events`
+
+Question-level aggregate statistics are administrator-only:
+
+`GET /arcade-api/movie-ladder/admin/question-stats`
+
+The aggregate response includes attempts, correct answers, wrong answers, accuracy percentage, rung, answer type, question text, and last-seen timestamp.
+
+This gives the administrator a basis for decisions such as:
+
+- reconsider a question that most players repeatedly miss;
+- move a question to a different rung;
+- replace confusing wording or weak distractors;
+- identify questions that are so easy they add little value.
+
+---
+
 # Run history, best runs, and result ranks
 
 Movie Ladder records a summary when a run ends.
