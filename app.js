@@ -578,6 +578,8 @@
         });
         if(!order){
           grid.dataset.orderFallback = "single";
+          grid.classList.remove("order-grid");
+          el("questionText").textContent = q.question;
         } else {
           delete grid.dataset.orderFallback;
         }
@@ -588,6 +590,8 @@
           button.disabled = false;
         });
         grid.dataset.orderFallback = "single";
+        grid.classList.remove("order-grid");
+        el("questionText").textContent = q.question;
       });
     }
   }
