@@ -750,7 +750,8 @@ h1{
   text-decoration:none;
   margin-bottom:14px;
 }
-.csv-import-form select{
+.csv-import-form select,
+#questionStatsSort{
   width:100%;
   min-height:50px;
   border:1px solid #bfbab0;
