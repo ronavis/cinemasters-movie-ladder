@@ -20,6 +20,7 @@
   let correctCount = 0, wrongCount = 0, locked = false, runRecorded = false;
   let currentRunId = "";
   let orderSelections = [];
+  let questionEventFlushPromise = null;
   let previousScreen = welcome;
   let googlePromise = null;
   let tmdbFetchEnabled = true;
@@ -98,6 +99,7 @@
 
   const RUNS_KEY = "movie_ladder_runs_v1";
   const QUESTION_HISTORY_KEY = "movie_ladder_question_history_v1";
+  const QUESTION_EVENT_QUEUE_KEY = "movie_ladder_question_event_queue_v1";
 
   const outcomeArt = {
     "Moviegoer": `<svg viewBox="0 0 240 180" role="img" aria-label="Moviegoer ticket badge"><rect x="24" y="42" width="192" height="96" rx="18" fill="#f1d34f"/><circle cx="24" cy="90" r="13" fill="#fffdf8"/><circle cx="216" cy="90" r="13" fill="#fffdf8"/><path d="M78 67h84v46H78z" fill="#245f50"/><path d="M94 78h52v24H94z" fill="#fffdf8"/><circle cx="106" cy="90" r="5" fill="#ef6a2f"/><circle cx="134" cy="90" r="5" fill="#ef6a2f"/></svg>`,
@@ -298,6 +300,76 @@
     renderRunList(el("bestRunsList"), best);
     renderRunList(el("recentRunsList"), recent);
     el("runsDialog").showModal();
+  }
+
+  function analyticsAnswerType(question){
+    if(isMovieOrderQuestion(question)) return "timeline";
+    if(question?.personDepartment === "Directing") return "director";
+    if(Array.isArray(question?.answerPeople)) return "actor";
+    if(Array.isArray(question?.answerMovies)) return "movie";
+    return "text";
+  }
+
+  function loadQuestionEventQueue(){
+    try {
+      const queue = JSON.parse(localStorage.getItem(QUESTION_EVENT_QUEUE_KEY) || "[]");
+      return Array.isArray(queue) ? queue.filter(item => item?.id && item?.runId) : [];
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function saveQuestionEventQueue(queue){
+    try {
+      localStorage.setItem(QUESTION_EVENT_QUEUE_KEY, JSON.stringify(queue.slice(-200)));
+    } catch (_) {}
+  }
+
+  function queueQuestionEvent(question, selected, correct){
+    if(!question || !currentRunId) return;
+    const event = {
+      id:newRunId(),
+      runId:currentRunId,
+      questionId:questionKey(question),
+      rung:Number(question.rung) || Math.min(index + 1, 10),
+      answerType:analyticsAnswerType(question),
+      question:String(question.question || ""),
+      answers:Array.isArray(question.answers) ? question.answers.slice(0,4) : [],
+      selected:[...selected],
+      correct:[...correct]
+    };
+
+    const queue = loadQuestionEventQueue();
+    queue.push(event);
+    saveQuestionEventQueue(queue);
+    flushQuestionEventQueue().catch(() => {});
+  }
+
+  async function flushQuestionEventQueue(){
+    if(questionEventFlushPromise) return questionEventFlushPromise;
+
+    questionEventFlushPromise = (async () => {
+      while(true){
+        const queue = loadQuestionEventQueue();
+        if(!queue.length) return;
+
+        const batch = queue.slice(0,20);
+        await api("/movie-ladder/question-events", {
+          method:"POST",
+          headers:{"Content-Type":"application/json"},
+          body:JSON.stringify({events:batch})
+        });
+
+        const sent = new Set(batch.map(item => item.id));
+        saveQuestionEventQueue(loadQuestionEventQueue().filter(item => !sent.has(item.id)));
+      }
+    })();
+
+    try {
+      await questionEventFlushPromise;
+    } finally {
+      questionEventFlushPromise = null;
+    }
   }
 
   function questionKey(question){
@@ -877,6 +949,8 @@
       el("posterGrid").classList.add("order-wrong");
     }
 
+    queueQuestionEvent(q, orderSelections, expected);
+
     const yearCounts = resolved.items.reduce((counts, item) => {
       counts[item.year] = (counts[item.year] || 0) + 1;
       return counts;
@@ -933,6 +1007,8 @@
         markAnswer(correct, "✓");
       }
     }
+
+    queueQuestionEvent(q, [choice], [q.correct]);
 
     el("scoreLabel").textContent = score.toLocaleString() + " pts";
     el("ticketsLabel").textContent = lives > 0 ? "🎟️ ".repeat(lives).trim() : "No tickets";
@@ -1367,5 +1443,6 @@
   renderAuth();
   resetRunState();
   restoreSession();
+  flushQuestionEventQueue().catch(() => {});
   loadQuestionBank().finally(() => loadHeroRail());
 })();
