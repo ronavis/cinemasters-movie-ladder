@@ -1072,8 +1072,9 @@
             wrongCount:run.wrongCount,
             maxStreak:run.maxStreak
           })
-        }).catch(() => {});
+        }).then(refreshWelcomeScores).catch(() => {});
       }
+      refreshPersonalBest();
     }
 
     const [title, copy] = outcomeCopy[rank];
@@ -1088,6 +1089,92 @@
     el("finalBestStreak").textContent = maxStreak;
     el("personalBestBanner").hidden = !(previousRuns.length === 0 || score > previousBest);
     show(result);
+  }
+
+  let standingsRequest = 0;
+  function paintClimbers(listId, statusId, leaders, error = false){
+    const list = el(listId);
+    list.replaceChildren();
+    leaders.forEach(player => {
+      const row = document.createElement("li");
+      const place = document.createElement("span");
+      place.className = "climber-position";
+      place.textContent = player.position;
+      const name = document.createElement("span");
+      name.className = "climber-name";
+      name.textContent = player.name;
+      const points = document.createElement("span");
+      points.className = "climber-score";
+      points.textContent = Number(player.score).toLocaleString() + " ";
+      const unit = document.createElement("small");
+      unit.textContent = "pts";
+      points.append(unit);
+      row.append(place, name, points);
+      list.append(row);
+    });
+    el(statusId).textContent = error ? "Standings are temporarily unavailable. You can still play." : leaders.length ? "" : "Be the first to share a climb.";
+    el(statusId).hidden = leaders.length > 0 && !error;
+  }
+
+  async function refreshClimbers(){
+    const request = ++standingsRequest;
+    try {
+      const data = await api("/movie-ladder/leaderboard?limit=10");
+      if(request !== standingsRequest) return;
+      const leaders = Array.isArray(data.leaders) ? data.leaders : [];
+      paintClimbers("welcomeLeaders", "welcomeLeadersStatus", leaders.slice(0,3));
+      paintClimbers("allClimbers", "allClimbersStatus", leaders);
+    } catch (_) {
+      if(request !== standingsRequest) return;
+      paintClimbers("welcomeLeaders", "welcomeLeadersStatus", [], true);
+      paintClimbers("allClimbers", "allClimbersStatus", [], true);
+    }
+  }
+
+  async function refreshPersonalBest(){
+    const token = state.token;
+    const localBest = summarizeRuns(loadLocalRuns()).bestScore;
+    el("welcomeBest").textContent = localBest ? `Your best on this device: ${localBest.toLocaleString()} pts` : "Your first climb starts here.";
+    if(!state.user) return;
+    try {
+      const data = await api("/movie-ladder/runs?limit=1");
+      if(token !== state.token || !state.user) return;
+      const best = Math.max(localBest, Number(data.summary?.bestScore) || 0);
+      el("welcomeBest").textContent = best ? `Your best: ${best.toLocaleString()} pts` : "Your first climb starts here.";
+    } catch (_) { /* Device history remains available when the account service is offline. */ }
+  }
+
+  function refreshWelcomeScores(){
+    refreshClimbers();
+    refreshPersonalBest();
+  }
+
+  async function loadLeaderboardProfile(){
+    const token = state.token;
+    el("saveLeaderboardProfile").disabled = true;
+    el("publicPlayerName").value = "";
+    el("shareBestScore").checked = false;
+    el("leaderboardProfileStatus").textContent = "Loading your preference…";
+    try {
+      const profile = await api("/movie-ladder/leaderboard-profile");
+      if(token !== state.token || !state.user) return;
+      el("publicPlayerName").value = profile.displayName || "";
+      el("shareBestScore").checked = Boolean(profile.sharing);
+      el("saveLeaderboardProfile").disabled = false;
+      el("leaderboardProfileStatus").textContent = "";
+    } catch (_) {
+      if(token === state.token) el("leaderboardProfileStatus").textContent = "Your preference could not load. Close and reopen Account to try again.";
+    }
+  }
+
+  const welcomeCanvas = el("welcomeWheel"), welcomeContext = welcomeCanvas.getContext("2d");
+  welcomeContext.lineWidth = 7;
+  welcomeContext.lineCap = "round";
+  for(let rung=0; rung<10; rung++){
+    welcomeContext.strokeStyle = rung === 0 ? "#ffbf09" : "#c5cec3";
+    welcomeContext.beginPath();
+    welcomeContext.arc(48,48,41,-Math.PI/2+rung*Math.PI/5+.07,-Math.PI/2+(rung+1)*Math.PI/5-.07);
+    welcomeContext.stroke();
   }
 
   function renderAuth(){
@@ -1116,6 +1203,7 @@
     renderAuth();
     el("accountDialog").close();
     if(settings.classList.contains("active")) show(welcome);
+    refreshWelcomeScores();
   }
 
   async function signIn(token){
@@ -1129,7 +1217,7 @@
     try { sessionStorage.setItem("movie_ladder_session", token); } catch (_) {}
     renderAuth();
     if(state.user.admin) refreshTmdbStatus();
-    syncLocalRunsToAccount().catch(() => {});
+    syncLocalRunsToAccount().catch(() => {}).finally(refreshWelcomeScores);
     el("accountDialog").close();
   }
 
@@ -1177,6 +1265,7 @@
     renderAuth();
     el("accountDialog").showModal();
     if(!state.user) await prepareGoogleButton();
+    else await loadLeaderboardProfile();
   }
 
   function formatVerified(epoch){
@@ -1465,7 +1554,7 @@
     resetRunState();
     show(game); render();
   });
-  el("homeButton").addEventListener("click", () => { closeAppMenu(); show(welcome); });
+  el("homeButton").addEventListener("click", () => { closeAppMenu(); show(welcome); refreshWelcomeScores(); });
   el("runsButton").addEventListener("click", () => { closeAppMenu(); openRuns(); });
   el("resultRunsButton").addEventListener("click", openRuns);
   el("closeRunsButton").addEventListener("click", () => el("runsDialog").close());
@@ -1553,7 +1642,7 @@
       };
       renderAuth();
       if(state.user.admin) refreshTmdbStatus();
-      syncLocalRunsToAccount().catch(() => {});
+      syncLocalRunsToAccount().catch(() => {}).finally(refreshWelcomeScores);
     } catch (_) {
       state.token = "";
       state.user = null;
@@ -1564,7 +1653,34 @@
 
   renderAuth();
   resetRunState();
-  restoreSession();
+  el("viewClimbers").addEventListener("click", () => {
+    el("climbersDialog").showModal();
+    refreshClimbers();
+  });
+  el("closeClimbers").addEventListener("click", () => el("climbersDialog").close());
+  el("joinClimbers").addEventListener("click", openAccount);
+  el("joinClimbersDialog").addEventListener("click", () => { el("climbersDialog").close(); openAccount(); });
+  el("leaderboardProfileForm").addEventListener("submit", async event => {
+    event.preventDefault();
+    if(!state.user || el("saveLeaderboardProfile").disabled) return;
+    const token = state.token;
+    el("saveLeaderboardProfile").disabled = true;
+    el("leaderboardProfileStatus").textContent = "Saving…";
+    try {
+      await api("/movie-ladder/leaderboard-profile", {
+        method:"PUT", headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({displayName:el("publicPlayerName").value.trim(), sharing:el("shareBestScore").checked})
+      });
+      if(token !== state.token) return;
+      el("leaderboardProfileStatus").textContent = "Preference saved.";
+      refreshWelcomeScores();
+    } catch(error){
+      if(token === state.token) el("leaderboardProfileStatus").textContent = error.message;
+    } finally {
+      if(token === state.token && state.user) el("saveLeaderboardProfile").disabled = false;
+    }
+  });
+  restoreSession().finally(refreshWelcomeScores);
   flushQuestionEventQueue().catch(() => {});
   loadQuestionBank().finally(() => loadHeroRail());
 })();

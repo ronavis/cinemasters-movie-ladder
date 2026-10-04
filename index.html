@@ -9,7 +9,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="assets/icons/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="styles.css?v=20261003-integrated-ux-1">
+  <link rel="stylesheet" href="styles.css?v=20261004-welcome-1">
 </head>
 <body>
   <main class="app-shell">
@@ -37,13 +37,20 @@
           </div>
         </div>
         <div class="hero-body">
-          <p>Climb from Moviegoer to Cinemaster. Questions get harder as you rise. Miss three and the credits roll.</p>
-          <div class="stats-grid">
-            <div><strong>10</strong><span>Rungs</span></div>
-            <div><strong>🎟️🎟️🎟️</strong><span>Tickets</span></div>
-            <div><strong>5,500</strong><span>Max pts</span></div>
+          <p class="welcome-lead">Ten rungs. Three chances.</p>
+          <p class="welcome-copy">Climb to Cinemaster.</p>
+          <div class="welcome-challenge" aria-label="10 rungs, 3 tickets, up to 5,500 points">
+            <div class="welcome-wheel"><canvas id="welcomeWheel" width="96" height="96" aria-hidden="true"></canvas><strong>10<span>rungs</span></strong></div>
+            <div class="welcome-stakes"><strong><i class="bi bi-ticket-perforated-fill" aria-hidden="true"></i> 3 tickets</strong><span>Up to <b>5,500</b> pts</span></div>
           </div>
-          <button id="startButton" class="primary-button" type="button">Start Climbing</button>
+          <button id="startButton" class="primary-button" type="button">Start Climbing <i class="bi bi-arrow-right" aria-hidden="true"></i></button>
+          <p id="welcomeBest" class="welcome-best" aria-live="polite">Your first climb starts here.</p>
+          <section class="welcome-standings" aria-labelledby="welcomeStandingsTitle">
+            <div class="standings-heading"><h2 id="welcomeStandingsTitle">Top climbers</h2><button id="viewClimbers" class="text-button" type="button">View all <span aria-hidden="true">↗</span></button></div>
+            <ol id="welcomeLeaders" class="climber-list"></ol>
+            <p id="welcomeLeadersStatus" class="small-copy" aria-live="polite">Loading standings…</p>
+            <button id="joinClimbers" class="text-button" type="button">Join the leaderboard</button>
+          </section>
         </div>
       </div>
 
@@ -272,7 +279,7 @@
     </div>
 
     <div id="signedOutPanel">
-      <p>Playing does not require an account. Sign in to identify an administrator now and to support personal scores later.</p>
+      <p>Playing does not require an account. Sign in to save your runs across devices and join Top climbers.</p>
       <div id="googleButton" class="google-button"></div>
       <p id="loginHelp" class="small-copy">Preparing Google sign-in…</p>
     </div>
@@ -281,13 +288,29 @@
       <p id="accountIdentity"></p>
       <p id="accountRole" class="small-copy"></p>
       <button id="openSettingsFromAccount" class="primary-button" type="button" hidden>Open admin settings</button>
+      <form id="leaderboardProfileForm" class="leaderboard-profile">
+        <h3>Top climbers</h3>
+        <label for="publicPlayerName">Public name</label>
+        <input id="publicPlayerName" type="text" minlength="2" maxlength="24" autocomplete="nickname" placeholder="Choose a name">
+        <label class="sharing-choice"><input id="shareBestScore" type="checkbox"> Share my best saved score</label>
+        <p class="small-copy">Only your chosen name and best climb appear publicly. You can stop sharing any time.</p>
+        <button id="saveLeaderboardProfile" class="secondary-button" type="submit" disabled>Save leaderboard preference</button>
+        <p id="leaderboardProfileStatus" class="small-copy" aria-live="polite"></p>
+      </form>
       <button id="signOutButton" class="secondary-button full-width" type="button">Sign out</button>
     </div>
   </dialog>
 
+  <dialog id="climbersDialog" class="account-dialog">
+    <div class="dialog-heading"><h2>Top climbers</h2><button id="closeClimbers" class="icon-button" type="button" aria-label="Close standings">×</button></div>
+    <p class="small-copy">One best saved climb per player.</p>
+    <ol id="allClimbers" class="climber-list"></ol>
+    <p id="allClimbersStatus" class="small-copy" aria-live="polite"></p>
+    <button id="joinClimbersDialog" class="secondary-button full-width" type="button">Join the leaderboard</button>
+  </dialog>
   <dialog id="creditsDialog" class="account-dialog"><h2>Credits</h2><a href="https://www.themoviedb.org" target="_blank" rel="noreferrer"><img src="assets/tmdb-logo.svg" width="90" height="20" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><button id="closeCredits" class="secondary-button" type="button">Done</button></dialog>
   <script src="config.js?v=20261003-integrated-ux-1"></script>
   <script src="data/questions.js?v=20261003-integrated-ux-1"></script>
-  <script src="app.js?v=20261003-bank-download-1"></script>
+  <script src="app.js?v=20261004-welcome-1"></script>
 </body>
 </html>

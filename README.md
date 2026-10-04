@@ -707,3 +707,12 @@ Gameplay uses a cream/emerald/gold palette with a compact circular rung indicato
 Administrator Settings opens to TMDb connection, question bank, and question analytics navigation, using the existing server-backed operations. Credits is available from the menu to all players. TMDb attribution uses the official developer-documentation logo. Bootstrap Icons 1.11.3 is bundled with its MIT license. No prototype selectors, sample data, or design-preview controls are included.
 
 This interface change does not alter question bank storage, identity, run history, analytics payloads, or backend endpoints.
+
+
+## Start screen and Top climbers
+
+The start screen uses a compact rung wheel, ticket count, and maximum points alongside Start Climbing. Personal best comes from saved runs: device history for guests, with account history included after sign-in. New players see an empty state rather than sample scores.
+
+Top climbers shows three public scores on the start screen and up to ten in View all. Players opt in from Account, choose a public name, and can withdraw at any time. The backend publishes one best saved climb per opted-in player, ordered by score, completion, highest rung, and earliest achievement. Public responses contain the chosen name and climb results; they exclude email addresses, account identifiers, and run identifiers. Existing runs stay private until the player opts in. Sharing a best score also applies to future saved runs. The leaderboard uses the existing run recording system and does not independently verify client-reported scores.
+
+Backend routes: public `GET /api/movie-ladder/leaderboard`; authenticated `GET` and `PUT /api/movie-ladder/leaderboard-profile`. Preferences are stored separately in `movie_ladder_public_profiles`, preserving existing run history and question analytics.

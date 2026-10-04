@@ -1493,3 +1493,35 @@ html,body{font-family:'DM Sans',system-ui,sans-serif}h1,h2,h3,.answer-label{font
 .run-status{flex-wrap:wrap;row-gap:8px}
 .run-status #ticketsLabel,.run-status #scoreLabel{white-space:nowrap}.run-status .streak-label{flex-basis:100%;background:none;border:0;border-radius:0;padding:0;text-align:left}.run-status>span:first-child{flex-shrink:0}
 @media(max-width:600px){.question-stats-scroll{overflow:visible;max-height:none}.question-stats-scroll table{min-width:0;width:100%}.question-stats-scroll thead{display:none}.question-stats-scroll tbody tr{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;padding:16px 0;border-bottom:1px solid var(--line)}.question-stats-scroll td{padding:0;border:0;min-width:0}.question-stats-scroll td:nth-child(1),.question-stats-scroll td:nth-child(2),.question-stats-scroll td:nth-child(3){grid-column:1/-1;min-width:0;max-width:none}.question-stats-scroll td:nth-child(1){font-size:12px;color:var(--muted)}.question-stats-scroll td:nth-child(1)::before{content:'Rung '}.question-stats-scroll td:nth-child(2){font-size:15px;font-weight:700}.question-stats-scroll td:nth-child(n+4)::before{content:attr(data-label);display:block;color:var(--muted);font-size:10px;margin-bottom:4px}}
+
+/* The welcome screen shares the game's wheel, restrained gold, and emerald action. */
+.welcome-lead{font-size:21px;font-weight:800;color:var(--green)!important;letter-spacing:-.4px}
+.welcome-copy{font-size:15px}
+.welcome-challenge{display:flex;align-items:center;justify-content:center;gap:25px;margin:22px 0}
+.welcome-wheel{position:relative;width:80px;height:80px;flex-shrink:0}
+.welcome-wheel canvas{width:100%;height:100%}
+.welcome-wheel strong{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:center;align-items:center;font-size:24px;line-height:1.05}
+.welcome-wheel span{font-size:10px;color:var(--muted);font-weight:600;margin-top:4px}
+.welcome-stakes{display:grid;gap:7px;font-size:15px}
+.welcome-stakes .bi{color:#bd8300;margin-right:5px;font-size:19px}
+.welcome-stakes>span{font-size:13px;color:var(--muted)}
+#welcome #startButton{display:flex;justify-content:center;align-items:center;gap:13px}
+.hero-body .welcome-best{text-align:center;font-size:12px;margin:10px 0 22px}
+.welcome-standings{border-top:1px solid var(--line);padding-top:18px}
+.standings-heading{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.standings-heading h2{font-size:16px;margin:0}
+.text-button{border:0;background:none;color:var(--green);padding:8px 0;font:inherit;font-size:12px;cursor:pointer}
+.text-button:hover{text-decoration:underline}
+.climber-list{list-style:none;padding:0;margin:5px 0 10px}
+.climber-list li{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line);font-size:14px}
+.climber-position{width:20px;flex-shrink:0;color:var(--muted);font-size:12px}
+.climber-name{flex:1;overflow-wrap:anywhere;font-weight:600}
+.climber-score{white-space:nowrap;font-weight:800;font-variant-numeric:tabular-nums}
+.climber-score small{font-weight:400;font-size:10px;color:var(--muted)}
+.leaderboard-profile{margin:18px 0;padding:16px 0;border-block:1px solid var(--line)}
+.leaderboard-profile h3{font-size:16px;margin:0 0 12px}
+.leaderboard-profile>label{display:block;margin:8px 0;font-size:13px}
+.leaderboard-profile>input{width:100%;box-sizing:border-box;padding:11px;border:1px solid var(--line);border-radius:8px;font:inherit;background:var(--paper)}
+.leaderboard-profile .sharing-choice{display:flex;align-items:center;gap:8px;margin:14px 0}
+.leaderboard-profile input[type=checkbox]{width:18px;height:18px;accent-color:var(--green)}
+.leaderboard-profile .small-copy{line-height:1.5}
