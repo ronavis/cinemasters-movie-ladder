@@ -150,6 +150,10 @@
             <div id="questionBankCount" class="status-pill">0 imported</div>
           </div>
 
+          <button id="triviaDownloadButton" class="secondary-button full-width" type="button">Download question bank (CSV)</button>
+          <p class="small-copy">Open in Excel or Numbers to review all built-in and imported questions, choices, correct answers, and explanations.</p>
+          <p id="triviaDownloadMessage" class="settings-message" role="status" aria-live="polite"></p>
+
           <div class="csv-help">
             <strong>CSV basics</strong>
             <p><code>answer_type</code>: text, actor, director, or movie. <code>correct</code>: 1–4. For movie choices, fill the optional answer-year columns so TMDB finds the right posters. For text/actor/director questions, <code>hero_movie</code> supplies the big poster.</p>
@@ -284,6 +288,6 @@
   <dialog id="creditsDialog" class="account-dialog"><h2>Credits</h2><a href="https://www.themoviedb.org" target="_blank" rel="noreferrer"><img src="assets/tmdb-logo.svg" width="90" height="20" alt="TMDB"></a><p>This product uses the TMDB API but is not endorsed or certified by TMDB.</p><button id="closeCredits" class="secondary-button" type="button">Done</button></dialog>
   <script src="config.js?v=20261003-integrated-ux-1"></script>
   <script src="data/questions.js?v=20261003-integrated-ux-1"></script>
-  <script src="app.js?v=20261003-integrated-ux-1"></script>
+  <script src="app.js?v=20261003-bank-download-1"></script>
 </body>
 </html>

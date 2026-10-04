@@ -35,6 +35,8 @@ The frontend is static GitHub Pages. The private API runs inside the existing Ni
 
 ## Recommended method: CSV import
 
+Administrators can use **Settings → Question Bank → Download question bank (CSV)** to download a fresh review copy of all built-in and imported questions. The file includes choices, correct answers, explanations, rung, category, points, and whether a question is eligible for normal play under the difficulty filter. It opens in Excel or Numbers and reads the current server bank on every download. This review export uses descriptive columns; use the separate blank CSV template for importing questions. Exporting does not change the bank or include player identities, analytics events, or credentials.
+
 New questions should normally be added from:
 
 **Movie Ladder -> Settings -> Trivia question bank**

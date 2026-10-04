@@ -1253,6 +1253,53 @@
     el("triviaPreview").hidden = false;
   }
 
+  function questionBankReviewCsv(imported){
+    const headings = ["Rung", "Bank", "Category", "Type", "Question", "Choice A", "Choice B", "Choice C", "Choice D", "Correct choice", "Correct answer", "Explanation", "In normal play", "Movie", "Year", "Points"];
+    const rows = [
+      ...builtInQuestions.map(question => ({question, origin:"Built-in"})),
+      ...imported.map(question => ({question, origin:"Imported"}))
+    ].sort((a, b) => Number(a.question.rung) - Number(b.question.rung));
+    const cells = value => {
+      let text = String(value ?? "");
+      // Keep spreadsheet apps from treating question-bank text as a formula.
+      if(/^[\s]*[=+\-@]/.test(text) || /^[\t\r\n]/.test(text)) text = "'" + text;
+      return '"' + text.replaceAll('"', '""') + '"';
+    };
+    const records = rows.map(({question:q, origin}) => [
+      q.rung, origin, q.genre, questionTypeLabel(q), q.question,
+      ...Array.from({length:4}, (_, i) => q.answers?.[i] || ""),
+      "ABCD"[q.correct] || "", q.answers?.[q.correct] || "", q.note,
+      origin === "Built-in" || questionFitsDifficulty(q) ? "Yes" : "No — difficulty filter",
+      q.movie, q.year, q.points
+    ]);
+    return "\uFEFF" + [headings, ...records].map(row => row.map(cells).join(",")).join("\r\n") + "\r\n";
+  }
+
+  async function downloadQuestionBank(){
+    if(!state.user?.admin) return;
+    const button = el("triviaDownloadButton"), message = el("triviaDownloadMessage");
+    button.disabled = true;
+    message.textContent = "Preparing the current question bank…";
+    try {
+      const payload = await api("/movie-ladder/admin/questions");
+      if(!Array.isArray(payload.questions)) throw new Error("Could not read the question bank. Please try again.");
+      const url = URL.createObjectURL(new Blob([questionBankReviewCsv(payload.questions)], {type:"text/csv;charset=utf-8"}));
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `movie-ladder-question-bank-${new Date().toISOString().slice(0,10)}.csv`;
+      link.hidden = true;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+      message.textContent = `Download prepared: ${builtInQuestions.length + payload.questions.length} questions (${builtInQuestions.length} built-in, ${payload.questions.length} imported).`;
+    } catch(error) {
+      message.textContent = error.message;
+    } finally {
+      button.disabled = false;
+    }
+  }
+
   async function refreshQuestionBankStatus(){
     if(!state.user?.admin) return;
     try {
@@ -1388,6 +1435,7 @@
     show(settings);
     el("tmdbMessage").textContent = "";
     el("triviaImportMessage").textContent = "";
+    el("triviaDownloadMessage").textContent = "";
     await Promise.all([refreshTmdbStatus(), refreshQuestionBankStatus(), refreshQuestionStats()]);
   }
 
@@ -1447,6 +1495,7 @@
     }
   });
   el("triviaValidateButton").addEventListener("click", validateTriviaCsv);
+  el("triviaDownloadButton").addEventListener("click", downloadQuestionBank);
   el("triviaImportButton").addEventListener("click", importTriviaCsv);
   el("triviaClearButton").addEventListener("click", clearTriviaBank);
 
